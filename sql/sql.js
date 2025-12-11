@@ -1,0 +1,17 @@
+const { QueryFile } = require("pg-promise");
+const { join: joinPath } = require("path");
+
+// HELPER FOR LINKING TO EXTERNAL QUERY FILES
+const sql = (file) => {
+  const fullPath = joinPath(__dirname, file); // GENERATING FULL PATH;
+  return new QueryFile(fullPath, { minify: true });
+};
+
+module.exports = {
+  get_acumatica_rtt_feed: {
+    systems: sql("queries/get-acumatica_rtt_feed.sql")
+  },
+  insert_rtt_feed: {
+    systems: sql("queries/insert-acumatica_rtt_feed.sql")
+  }
+};
