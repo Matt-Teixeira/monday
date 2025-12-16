@@ -71,7 +71,8 @@ INSERT INTO
         AccountID_2,
         CustomerID_2,
         EquipmentNbr,
-        Login
+        Login,
+        capture_datetime
     )
 VALUES
     ($1,
@@ -145,5 +146,6 @@ $68,
 $69,
 $70,
 $71,
-$72
+$72,
+$73
 )

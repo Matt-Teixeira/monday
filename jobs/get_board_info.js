@@ -2,7 +2,7 @@ require("dotenv").config();
 const axios = require("axios");
 
 const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN; // from .env
-const BOARD_ID = process.env.MONDAY_BOARD_ID; // your MRI-Platform-Reporting board ID
+const BOARD_ID = process.env.MMB_CUST_WORKFLOW_ID; // your MRI-Platform-Reporting board ID
 
 const monday = axios.create({
   baseURL: "https://api.monday.com/v2",
