@@ -18,7 +18,7 @@ async function send_teams_card(system) {
               type: "TextBlock",
               size: "Large",
               weight: "Bolder",
-              text: "Monday Sync Update"
+              text: "MMB-Workflow Update"
             },
             {
               type: "TextBlock",
