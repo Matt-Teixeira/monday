@@ -4,6 +4,9 @@ const {
   insert_db_rtt
 } = require("../../sql/qf-provider");
 const { send_teams_card } = require("../../tools");
+const update_cust_workflow = require("../update-mri-report-board/update-cust-workflow");
+
+// TODO: use update_cust_workflow() to insert to mmb cust board
 
 const { default: axios } = require("axios");
 

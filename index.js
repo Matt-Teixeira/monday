@@ -1,11 +1,8 @@
 ("use strict");
 require("dotenv").config();
-const db = require("./db/pgPool");
 const {
   inspect_board,
   get_board_info,
-  create_row,
-  update_mri_report,
   update_rtt_board
 } = require("./jobs");
 const { capture_datetime } = require("./tools");
@@ -22,10 +19,6 @@ const run_job = async (job) => {
 
       console.log(bi.items_page.items);
       break;
-    case "update_mri_reports":
-      await update_mri_report();
-      break;
-
     case "equipment_rtt":
       await update_rtt_board(cap_dt);
       break;

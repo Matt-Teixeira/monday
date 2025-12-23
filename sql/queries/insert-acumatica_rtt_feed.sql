@@ -59,6 +59,7 @@ INSERT INTO
         RTTNotes,
         SiteID,
         SiteID_2,
+        RemoteConnectivityStatus,
         AccountID,
         ManufacturerID,
         Model_2,
@@ -147,5 +148,6 @@ $69,
 $70,
 $71,
 $72,
-$73
+$73,
+$74
 )
