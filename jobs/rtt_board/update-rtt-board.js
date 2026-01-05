@@ -4,7 +4,7 @@ const {
   insert_db_rtt
 } = require("../../sql/qf-provider");
 const { send_teams_card } = require("../../tools");
-const update_cust_workflow = require("../update-mri-report-board/update-cust-workflow");
+const insert_to_mmb_cust = require("../update-mri-report-board/update-cust-workflow");
 
 // TODO: use update_cust_workflow() to insert to mmb cust board
 
@@ -37,6 +37,8 @@ const update_rtt_board = async (cap_datetime) => {
       }
       added_to_db.push(rtt_system);
       await insert_db_rtt(values_arr);
+      console.log("\nINSERTED:");
+      console.log(rtt_system);
 
       if (rtt_system.Modality === "MRI") to_mmb_workflow.push(rtt_system);
     }
@@ -44,12 +46,15 @@ const update_rtt_board = async (cap_datetime) => {
 
   try {
     for (const system of to_mmb_workflow) {
+      // MRI insert to Monday: mmb-cust-workflow
+      console.log("NOW ADDING TO MMB FEED: " + system.Description);
       const formatted_obj = format_for_mmb_workflow(system);
-      console.log(`\nAdded To MMB Feed: ${formatted_obj.name}\n`);
       await insert_to_mmb_cust(formatted_obj);
       await send_teams_card(system);
+      console.log(`\nAdded To MMB Feed: ${formatted_obj.name}\n`);
     }
 
+    // Insert all to Monday: RTT-FEED
     insert_monday(added_to_db, cap_datetime)
       .then(() => console.log("Done syncing RTT feed to Monday"))
       .catch((e) => console.error("Fatal error syncing RTT feed:", e));
@@ -61,7 +66,7 @@ const update_rtt_board = async (cap_datetime) => {
 function format_for_mmb_workflow(system) {
   return {
     name: system.Description,
-    status: { label: "Data-Gathering" },
+    status: { label: "NEW" },
     text_mkxjfnc4: system.CustomerName,
     text_mkxjn0xh: system.CustomerContractLocationName,
     text_mkxjzsj3: "MRI",
@@ -291,52 +296,6 @@ async function createRttItem(rtt, cap_datetime) {
     // what shows up in the "Name" column
     itemName: rtt.Description || rtt.EquipmentID || "RTT Item",
     columnValues: buildColumnValues(rtt, cap_datetime)
-  };
-
-  const res = await mondayClient.post("", { query, variables });
-
-  if (res.data.errors) {
-    throw new Error(JSON.stringify(res.data.errors, null, 2));
-  }
-
-  return res.data.data.create_item.id;
-}
-
-async function insert_to_mmb_cust(formatted) {
-  const MONDAY_API_URL = "https://api.monday.com/v2";
-  const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
-
-  // Ensure BOARD_ID is a number (env vars are strings)
-  const BOARD_ID = Number(process.env.MMB_CUST_WORKFLOW_ID);
-  const GROUP_ID = "topics";
-
-  const mondayClient = axios.create({
-    baseURL: MONDAY_API_URL,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: MONDAY_API_TOKEN
-    }
-  });
-
-  const query = `
-    mutation ($boardId: ID!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
-      create_item(
-        board_id: $boardId,
-        group_id: $groupId,
-        item_name: $itemName,
-        column_values: $columnValues
-      ) { id }
-    }
-  `;
-
-  // name maps to item_name; everything else goes in column_values
-  const { name, ...columnValuesObj } = formatted;
-
-  const variables = {
-    boardId: BOARD_ID,
-    groupId: GROUP_ID,
-    itemName: name || "RTT Item",
-    columnValues: JSON.stringify(columnValuesObj)
   };
 
   const res = await mondayClient.post("", { query, variables });
