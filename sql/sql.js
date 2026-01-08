@@ -13,5 +13,11 @@ module.exports = {
   },
   insert_rtt_feed: {
     systems: sql("queries/insert-acumatica_rtt_feed.sql")
+  },
+  get_acumatica_rtt_feed_rmv: {
+    systems: sql("queries/get-acumatica_rtt_feed_rmv.sql")
+  },
+  insert_rtt_feed_rmv: {
+    systems: sql("queries/insert-acumatica_rtt_feed_rmv.sql")
   }
 };

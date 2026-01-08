@@ -1,9 +1,11 @@
 const { get_acu_equip_rtt } = require("../../api");
 const {
   get_all_acumatica_rtt_feed,
-  insert_db_rtt
+  insert_db_rtt,
+  insert_db_rtt_rmv,
+  get_all_acumatica_rtt_feed_rmv
 } = require("../../sql/qf-provider");
-const { send_teams_card } = require("../../tools");
+const { send_teams_card, diff_by_key } = require("../../tools");
 const insert_to_mmb_cust = require("../update-mri-report-board/update-cust-workflow");
 
 // TODO: use update_cust_workflow() to insert to mmb cust board
@@ -12,41 +14,62 @@ const { default: axios } = require("axios");
 
 const update_rtt_board = async (cap_datetime) => {
   // Get systems from db
-  const db_data = await get_all_acumatica_rtt_feed();
+  const db_rtt_feed = await get_all_acumatica_rtt_feed();
+  const db_rtt_feed_rmv = await get_all_acumatica_rtt_feed_rmv();
+
+  console.log("\ndb_rtt_feed_rmv");
+  console.log(db_rtt_feed_rmv);
 
   // Get rtt systems from api
-  let acu_rtt_data = await get_acu_equip_rtt();
-  acu_rtt_data = acu_rtt_data.value ?? [];
+  let api_rtt_feed = await get_acu_equip_rtt();
+  api_rtt_feed = api_rtt_feed.value ?? [];
 
-  const added_to_db = [];
+  // Delta Check
+  const { added_rtt, removed_rtt } = diff_by_key(
+    api_rtt_feed,
+    db_rtt_feed,
+    (item) => String(item.Description ?? item.description).trim()
+  );
+
+  // console.log("\n *** Need to INSERT into DB:", added_rtt);
+  // console.log("\n *** Need to DELETE from DB:", removed_rtt);
+
+  // Add to rmv table
+  // build lookup set from DB
+  const dbDescriptions = new Set(
+    db_rtt_feed_rmv.map((item) => item.description.trim())
+  );
+
+  // items in API but not in DB
+  const add_to_rmv = removed_rtt.filter(
+    (item) => !dbDescriptions.has(item.description.trim())
+  );
+
+  for (let system of add_to_rmv) {
+    await insert_db_rtt_rmv([system.description, system.capture_datetime]);
+  }
+
+  // New MRI systems in Acumatica and not in DB/Monday that will go to mmb-cust-workflow
   const to_mmb_workflow = [];
-  for (let rtt_system of acu_rtt_data) {
-    rtt_system.capture_datetime = cap_datetime.toISO();
-    const found = db_data.find(
-      (system) => system.description === rtt_system.Description
-    );
-
-    if (!found) {
-      let values_arr = [];
-      for (let prop in rtt_system) {
-        if (rtt_system[prop] === null || rtt_system[prop] == undefined) {
-          values_arr.push(null);
-        } else {
-          values_arr.push(String(rtt_system[prop]).trim());
-        }
+  for (let new_system of added_rtt) {
+    new_system.capture_datetime = cap_datetime.toISO();
+    let values_arr = [];
+    for (let prop in new_system) {
+      if (new_system[prop] === null || new_system[prop] == undefined) {
+        values_arr.push(null);
+      } else {
+        values_arr.push(String(new_system[prop]).trim());
       }
-      added_to_db.push(rtt_system);
-      await insert_db_rtt(values_arr);
-      console.log("\nINSERTED:");
-      console.log(rtt_system);
-
-      if (rtt_system.Modality === "MRI") to_mmb_workflow.push(rtt_system);
     }
+
+    await insert_db_rtt(values_arr);
+
+    if (new_system.Modality === "MRI") to_mmb_workflow.push(new_system);
   }
 
   try {
+    // MRI insert to Monday: mmb-cust-workflow
     for (const system of to_mmb_workflow) {
-      // MRI insert to Monday: mmb-cust-workflow
       console.log("NOW ADDING TO MMB FEED: " + system.Description);
       const formatted_obj = format_for_mmb_workflow(system);
       await insert_to_mmb_cust(formatted_obj);
@@ -54,18 +77,41 @@ const update_rtt_board = async (cap_datetime) => {
       console.log(`\nAdded To MMB Feed: ${formatted_obj.name}\n`);
     }
 
-    // Insert all to Monday: RTT-FEED
-    insert_monday(added_to_db, cap_datetime)
-      .then(() => console.log("Done syncing RTT feed to Monday"))
-      .catch((e) => console.error("Fatal error syncing RTT feed:", e));
+    // Insert all to Monday: ACUMATICA-RTT-SYSTEMS && NEW-RTT-ADDITIONS
+    if (added_rtt.length) {
+      // ACUMATICA-RTT-SYSTEMS
+      insert_monday_rtt(added_rtt, cap_datetime, "topics")
+        .then(() => console.log("Done syncing RTT Feed to Monday"))
+        .catch((e) => console.error("Fatal error syncing RTT feed:", e));
+
+      // NEW-RTT-ADDITIONS
+      insert_monday_rtt(added_rtt, cap_datetime, "group_mkzb5ahp")
+        .then(() =>
+          console.log("Done syncing New Additions to RTT Feed to Monday")
+        )
+        .catch((e) => console.error("Fatal error syncing New RTT Feed:", e));
+    }
+
+    // Insert to Monday: REMOVED-FROM-RTT
+    if (add_to_rmv.length) {
+      insert_monday_rtt(removed_rtt, cap_datetime, "group_mkzbkhkt")
+        .then(() =>
+          console.log("Done syncing removed systems to RTT Feed to Monday")
+        )
+        .catch((e) =>
+          console.error("Fatal error syncing removed systems RTT Feed:", e)
+        );
+    }
   } catch (error) {
     console.log(error);
   }
 };
 
+// HELPER FUNCTIONS
+
 function format_for_mmb_workflow(system) {
   return {
-    name: system.Description,
+    name: system.Description ?? system.description,
     status: { label: "NEW" },
     text_mkxjfnc4: system.CustomerName,
     text_mkxjn0xh: system.CustomerContractLocationName,
@@ -75,11 +121,13 @@ function format_for_mmb_workflow(system) {
   };
 }
 
-async function insert_monday(systems, cap_datetime) {
+async function insert_monday_rtt(systems, cap_datetime, board_name) {
   for (const rtt of systems) {
     try {
-      const id = await createRttItem(rtt, cap_datetime);
-      console.log(`Created RTT-FEED Item: ${id} for ${rtt.Description}`);
+      const id = await createRttItem(rtt, cap_datetime, board_name);
+      console.log(
+        `Created RTT-FEED Item: ${id} for ${rtt.Description ?? rtt.description}`
+      );
     } catch (err) {
       console.error(
         `Error creating item for ${rtt.Description}:`,
@@ -99,154 +147,178 @@ function norm(v) {
 function buildColumnValues(rtt, cap_datetime) {
   const cols = {
     // CustomerID
-    text_mkyfbpee: norm(rtt.CustomerID),
+    text_mkyfbpee: norm(rtt.CustomerID ?? rtt.customerid),
 
     // LocationID
-    text_mkyf6p0x: norm(rtt.LocationID),
+    text_mkyf6p0x: norm(rtt.LocationID ?? rtt.locationid),
 
     // ServiceContractID
-    text_mkyfyhr0: norm(rtt.ServiceContractID),
+    text_mkyfyhr0: norm(rtt.ServiceContractID ?? rtt.servicecontractid),
 
     // CustomerContractID
-    text_mkyfba0y: norm(rtt.CustomerContractID),
+    text_mkyfba0y: norm(rtt.CustomerContractID ?? rtt.customercontractid),
 
     // EquipmentDescription
-    text_mkyfyb98: norm(rtt.EquipmentDescription),
+    text_mkyfyb98: norm(rtt.EquipmentDescription ?? rtt.equipmentdescription),
 
     // SerialNbr
-    text_mkyfsnjp: norm(rtt.SerialNbr),
+    text_mkyfsnjp: norm(rtt.SerialNbr ?? rtt.serialnbr),
 
     // Status
-    text_mkyfdta3: norm(rtt.Status),
+    text_mkyfdta3: norm(rtt.Status ?? rtt.status),
 
     // Room
-    text_mkyf4nqv: norm(rtt.Room),
+    text_mkyf4nqv: norm(rtt.Room ?? rtt.room),
 
     // SoftwareRelease
-    text_mkyf6y7e: norm(rtt.SoftwareRelease),
+    text_mkyf6y7e: norm(rtt.SoftwareRelease ?? rtt.softwarerelease),
 
     // SystemIPAddress
-    text_mkyftz9a: norm(rtt.SystemIPAddress),
+    text_mkyftz9a: norm(rtt.SystemIPAddress ?? rtt.systemipaddress),
 
     // Modality
-    text_mkyfk8xm: norm(rtt.Modality),
+    text_mkyfk8xm: norm(rtt.Modality ?? rtt.modality),
 
     // ModelDescription
-    text_mkyfnce5: norm(rtt.ModelDescription),
+    text_mkyfnce5: norm(rtt.ModelDescription ?? rtt.modeldescription),
 
     // CustomerName
-    text_mkyf9nmy: norm(rtt.CustomerName),
+    text_mkyf9nmy: norm(rtt.CustomerName ?? rtt.customername),
 
     // LocationName
-    text_mkyfw4xn: norm(rtt.LocationName),
+    text_mkyfw4xn: norm(rtt.LocationName ?? rtt.locationname),
 
     // AddressLine1
-    text_mkyfzn5b: norm(rtt.AddressLine1),
+    text_mkyfzn5b: norm(rtt.AddressLine1 ?? rtt.addressline1),
 
     // AddressLine2
-    text_mkyf6fmd: norm(rtt.AddressLine2),
+    text_mkyf6fmd: norm(rtt.AddressLine2 ?? rtt.addressline2),
 
     // City
-    text_mkyfm6yt: norm(rtt.City),
+    text_mkyfm6yt: norm(rtt.City ?? rtt.city),
 
     // State
-    text_mkyfk2we: norm(rtt.State),
+    text_mkyfk2we: norm(rtt.State ?? rtt.state),
 
     // PostalCode
-    text_mkyfp1vm: norm(rtt.PostalCode),
+    text_mkyfp1vm: norm(rtt.PostalCode ?? rtt.postalcode),
 
     // Model
-    text_mkyfek5s: norm(rtt.Model),
+    text_mkyfek5s: norm(rtt.Model ?? rtt.model),
 
     // CustomerUniqueID
-    text_mkyfc4e9: norm(rtt.CustomerUniqueID),
+    text_mkyfc4e9: norm(rtt.CustomerUniqueID ?? rtt.customeruniqueid),
 
     // Manufacturer
-    text_mkyf8pat: norm(rtt.Manufacturer),
+    text_mkyf8pat: norm(rtt.Manufacturer ?? rtt.manufacturer),
 
     // LastPMCompleted
-    text_mkyfmws4: norm(rtt.LastPMCompleted),
+    text_mkyfmws4: norm(rtt.LastPMCompleted ?? rtt.lastpmcompleted),
 
     // PMFrequencyinmonths
-    text_mkyf6jdh: norm(rtt.PMFrequencyinmonths),
+    text_mkyf6jdh: norm(rtt.PMFrequencyinmonths ?? rtt.pmfrequencyinmonths),
 
     // LegacyEquipmentID
-    text_mkyfy5m1: norm(rtt.LegacyEquipmentID),
+    text_mkyfy5m1: norm(rtt.LegacyEquipmentID ?? rtt.legacyequipmentid),
 
     // ShowonRemoteServicesWebsite
-    text_mkyf3e0p: norm(rtt.ShowonRemoteServicesWebsite),
+    text_mkyf3e0p: norm(
+      rtt.ShowonRemoteServicesWebsite ?? rtt.showonremoteserviceswebsite
+    ),
 
     // ServiceContractCustomerID
-    text_mkyf5ccy: norm(rtt.ServiceContractCustomerID),
+    text_mkyf5ccy: norm(
+      rtt.ServiceContractCustomerID ?? rtt.servicecontractcustomerid
+    ),
 
     // ServiceContractCustomerName
-    text_mkyfgfhd: norm(rtt.ServiceContractCustomerName),
+    text_mkyfgfhd: norm(
+      rtt.ServiceContractCustomerName ?? rtt.servicecontractcustomername
+    ),
 
     // CustomerContractCustomerID
-    text_mkyfe84s: norm(rtt.CustomerContractCustomerID),
+    text_mkyfe84s: norm(
+      rtt.CustomerContractCustomerID ?? rtt.customercontractcustomerid
+    ),
 
     // CustomerContractCustomerName
-    text_mkyfzd0g: norm(rtt.CustomerContractCustomerName),
+    text_mkyfzd0g: norm(
+      rtt.CustomerContractCustomerName ?? rtt.customercontractcustomername
+    ),
 
     // ServiceContractStatus
-    text_mkyft88f: norm(rtt.ServiceContractStatus),
+    text_mkyft88f: norm(rtt.ServiceContractStatus ?? rtt.servicecontractstatus),
 
     // CustomerContractStatus
-    text_mkyffwj2: norm(rtt.CustomerContractStatus),
+    text_mkyffwj2: norm(
+      rtt.CustomerContractStatus ?? rtt.customercontractstatus
+    ),
 
     // ServiceContractLocationID
-    text_mkyf1hxh: norm(rtt.ServiceContractLocationID),
+    text_mkyf1hxh: norm(
+      rtt.ServiceContractLocationID ?? rtt.servicecontractlocationid
+    ),
 
     // ServiceContractLocationName
-    text_mkyfs9mr: norm(rtt.ServiceContractLocationName),
+    text_mkyfs9mr: norm(
+      rtt.ServiceContractLocationName ?? rtt.servicecontractlocationname
+    ),
 
     // CustomerContractLocationID
-    text_mkyfpqpd: norm(rtt.CustomerContractLocationID),
+    text_mkyfpqpd: norm(
+      rtt.CustomerContractLocationID ?? rtt.customercontractlocationid
+    ),
 
     // CustomerContractLocationName
-    text_mkyftcwr: norm(rtt.CustomerContractLocationName),
+    text_mkyftcwr: norm(
+      rtt.CustomerContractLocationName ?? rtt.customercontractlocationname
+    ),
 
     // ExpirationDate
-    text_mkyf5kda: norm(rtt.ExpirationDate),
+    text_mkyf5kda: norm(rtt.ExpirationDate ?? rtt.expirationdate),
 
     // MMBControlNumber
-    text_mkyffczk: norm(rtt.MMBControlNumber),
+    text_mkyffczk: norm(rtt.MMBControlNumber ?? rtt.mmbcontrolnumber),
 
     // IGAHCreated
-    text_mkyfw4ya: norm(rtt.IGAHCreated),
+    text_mkyfw4ya: norm(rtt.IGAHCreated ?? rtt.igahcreated),
 
     // IGAHCreatedBy
-    text_mkyfrpcp: norm(rtt.IGAHCreatedBy),
+    text_mkyfrpcp: norm(rtt.IGAHCreatedBy ?? rtt.igahcreatedby),
 
     // IGAHUpdatedBy
-    text_mkyf9r2g: norm(rtt.IGAHUpdatedBy),
+    text_mkyf9r2g: norm(rtt.IGAHUpdatedBy ?? rtt.igahupdatedby),
 
     // IGAHUpdated
-    text_mkyfv5dz: norm(rtt.IGAHUpdated),
+    text_mkyfv5dz: norm(rtt.IGAHUpdated ?? rtt.igahupdated),
 
     // IGAHActive (boolean → string)
-    text_mkyf6kdy: norm(rtt.IGAHActive),
+    text_mkyf6kdy: norm(rtt.IGAHActive ?? rtt.igahactive),
 
     // RemoteConnectivityImplemeted
-    text_mkyfrkz2: norm(rtt.RemoteConnectivityImplemeted),
+    text_mkyfrkz2: norm(
+      rtt.RemoteConnectivityImplemeted ?? rtt.remoteconnectivityimplemeted
+    ),
 
     // PrimaryEngineer
-    text_mkyf17nb: norm(rtt.PrimaryEngineer),
+    text_mkyf17nb: norm(rtt.PrimaryEngineer ?? rtt.primaryengineer),
 
     // PrimaryEngineer_2
-    text_mkyfvfxe: norm(rtt.PrimaryEngineer_2),
+    text_mkyfvfxe: norm(rtt.PrimaryEngineer_2 ?? rtt.primaryengineer_2),
 
     // EmployeeName
-    text_mkyfgxms: norm(rtt.EmployeeName),
+    text_mkyfgxms: norm(rtt.EmployeeName ?? rtt.employeename),
 
     // SecondaryEngineer
-    text_mkyfvdzx: norm(rtt.SecondaryEngineer),
+    text_mkyfvdzx: norm(rtt.SecondaryEngineer ?? rtt.secondaryengineer),
 
     // SecondaryEngineer_2
-    text_mkyfd9h7: norm(rtt.SecondaryEngineer_2),
+    text_mkyfd9h7: norm(rtt.SecondaryEngineer_2 ?? rtt.secondaryengineer_2),
 
     // EmployeeName_2
-    text_mkyfrrz9: norm(rtt.EmployeeName_2),
+    text_mkyfrrz9: norm(rtt.EmployeeName_2 ?? rtt.employeename_2),
+
+    text_mkzdqcx3: norm(rtt.RemoteCoverage ?? rtt.remotecoverage),
 
     date_mkypgn4f: {
       date: cap_datetime.toISODate(),
@@ -258,11 +330,11 @@ function buildColumnValues(rtt, cap_datetime) {
   return JSON.stringify(cols);
 }
 
-async function createRttItem(rtt, cap_datetime) {
+async function createRttItem(rtt, cap_datetime, board_name) {
   const MONDAY_API_URL = "https://api.monday.com/v2";
   const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
   const BOARD_ID = process.env.MONDAY_BOARD_ID_3;
-  const GROUP_ID = "topics";
+  const GROUP_ID = board_name;
 
   const mondayClient = axios.create({
     baseURL: MONDAY_API_URL,
@@ -294,7 +366,7 @@ async function createRttItem(rtt, cap_datetime) {
     boardId: BOARD_ID,
     groupId: GROUP_ID,
     // what shows up in the "Name" column
-    itemName: rtt.Description || rtt.EquipmentID || "RTT Item",
+    itemName: rtt.Description || rtt.description || "RTT Item",
     columnValues: buildColumnValues(rtt, cap_datetime)
   };
 
@@ -308,193 +380,3 @@ async function createRttItem(rtt, cap_datetime) {
 }
 
 module.exports = update_rtt_board;
-
-/* 
-  {
-    Description: 'SME16434',
-    CustomerID: 'C112313                       ',
-    LocationID: 'MAIN      ',
-    ServiceContractID: 'AHS00003330',
-    CustomerContractID: 'CPPAHS77  ',
-    EquipmentDescription: 'Achieva',
-    SerialNbr: '22286',
-    Status: 'Active',
-    Room: null,
-    SoftwareRelease: null,
-    SystemIPAddress: '172.16.19.67',
-    Modality: 'MRI',
-    ModelDescription: 'Achieva',
-    CustomerName: 'UT Health East Olympic Center',
-    LocationName: 'Primary Location',
-    AddressLine1: '700 Olympic Circle',
-    AddressLine2: null,
-    City: 'Tyler',
-    State: 'TX',
-    PostalCode: '75701',
-    Model: 'ACHIEVA 1.5T',
-    CustomerUniqueID: null,
-    Manufacturer: 'Philips Medical Systems',
-    LastPMCompleted: null,
-    PMFrequencyinmonths: null,
-    LegacyEquipmentID: null,
-    ShowonRemoteServicesWebsite: null,
-    ServiceContractCustomerID: 'C112313                       ',
-    ServiceContractCustomerName: 'UT Health East Olympic Center',
-    CustomerContractCustomerID: 'C0151                         ',
-    CustomerContractCustomerName: 'Renovo Solutions, LLC',
-    ServiceContractStatus: 'Active',
-    CustomerContractStatus: 'Active',
-    ServiceContractLocationID: 'MAIN      ',
-    ServiceContractLocationName: 'Primary Location',
-    CustomerContractLocationID: 'SHIP073   ',
-    CustomerContractLocationName: 'UT Health East Texas Physicians',
-    ExpirationDate: '2026-02-28T00:00:00',
-    MMBControlNumber: null,
-    IGAHCreated: '2023-03-31T18:34:29.22',
-    IGAHCreatedBy: 'angela.schwartz',
-    IGAHUpdatedBy: 'michelle.brock',
-    IGAHUpdated: '2024-04-11T16:01:02.82',
-    IGAHActive: true,
-    RemoteConnectivityImplemeted: true,
-    PrimaryEngineer: null,
-    PrimaryEngineer_2: 'LORTIZ                        ',
-    EmployeeName: 'Ortiz, Luis',
-    SecondaryEngineer: null,
-    SecondaryEngineer_2: null,
-    EmployeeName_2: null,
-    Workgroup: 'Dallas',
-    BAWorkgroup: 'Dallas',
-    RemoteCoverage: 'RMM',
-    SCDesc: 'CPPAHS77 - Magnet Monitoring - Monday-Sunday - 24 Hours (Exp 2/28/26)',
-    HostImplementationDate: '2023-10-06T00:00:00',
-    RTTNotes: null,
-    SiteID: 'CE# 36541 / Philips ID: 42919096',
-    SiteID_2: null,
-    AccountID: 172599,
-    ManufacturerID: 'PHILIPS        ',
-    Model_2: 'ACHIEVA 1.5T',
-    AddressID: 787151,
-    ManufacturerID_2: 'PHILIPS        ',
-    EntityType: 'Contract',
-    ContractID: 4724,
-    ServiceContractID_2: 'AHS00003330',
-    EquipmentID: 'SME16434',
-    AccountID_2: 'C112313                       ',
-    CustomerID_2: 'C112313                       ',
-    EquipmentNbr: 'SME16434',
-    Login: 'russ.gregory'
-  }
-
-  "columns": [
-          {
-            "id": "name",
-            "title": "Name",
-            "type": "name"
-          },
-          {
-            "id": "subtasks_mkyavr54",
-            "title": "Subitems",
-            "type": "subtasks"
-          },
-          {
-            "id": "status",
-            "title": "Status",
-            "type": "status"
-          },
-          {
-            "id": "board_relation_mkyasw0t",
-            "title": "RemoteBox_Monday_Import",
-            "type": "board_relation"
-          },
-          {
-            "id": "lookup_mkyhd2n1",
-            "title": "Mirror-Box",
-            "type": "mirror"
-          },
-          {
-            "id": "lookup_mkyaadp1",
-            "title": "SSH-IP",
-            "type": "mirror"
-          },
-          {
-            "id": "text_mkxjfnc4",
-            "title": "Customer-Name",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjrtzm",
-            "title": "Sub-Group",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjn0xh",
-            "title": "Site-Name",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjzsj3",
-            "title": "Modality",
-            "type": "text"
-          },
-          {
-            "id": "text_mkyfmb6e",
-            "title": "Manufacturer",
-            "type": "text"
-          },
-          {
-            "id": "text_mkyfvyhj",
-            "title": "Model",
-            "type": "text"
-          },
-          {
-            "id": "text_mkyfthry",
-            "title": "Serial",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjhw6v",
-            "title": "Box-Assinged",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjfakx",
-            "title": "NUC_MAC",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjzjjw",
-            "title": "SSH-IP",
-            "type": "text"
-          },
-          {
-            "id": "text_mkxjhc6f",
-            "title": "SVC",
-            "type": "text"
-          },
-          {
-            "id": "long_text_mkxjc4hr",
-            "title": "Shipping-Info",
-            "type": "long_text"
-          },
-          {
-            "id": "long_text_mkxj53gr",
-            "title": "Notes",
-            "type": "long_text"
-          },
-          {
-            "id": "person",
-            "title": "Person",
-            "type": "people"
-          },
-          {
-            "id": "date4",
-            "title": "Date",
-            "type": "date"
-          },
-          {
-            "id": "long_text_mkxq9d75",
-            "title": "Internal-Notes",
-            "type": "long_text"
-          }
-        ]
-*/
