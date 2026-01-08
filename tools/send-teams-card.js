@@ -18,11 +18,11 @@ async function send_teams_card(system) {
               type: "TextBlock",
               size: "Large",
               weight: "Bolder",
-              text: "MMB-Workflow Update: TEST"
+              text: "MMB-Workflow Update"
             },
             {
               type: "TextBlock",
-              text: `**${system.Description}: TEST**`,
+              text: `**${system.Description}**`,
               wrap: true
             },
             {
