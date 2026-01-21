@@ -1,0 +1,139 @@
+/**
+ * Shared Monday.com API Client
+ * Centralized client for all Monday.com API operations
+ */
+const axios = require("axios");
+const mondayConfig = require("../config/monday-boards");
+const { buildRTTColumnValues } = require("../tools/monday-column-mapper");
+
+const MONDAY_API_URL = "https://api.monday.com/v2";
+
+/**
+ * Create configured axios instance for Monday.com API
+ */
+function createClient() {
+  return axios.create({
+    baseURL: MONDAY_API_URL,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: process.env.MONDAY_API_TOKEN
+    }
+  });
+}
+
+/**
+ * Create a single item on Monday.com board
+ *
+ * @param {Object} options - Item creation options
+ * @param {string} options.boardId - Board ID
+ * @param {string} options.groupId - Group ID
+ * @param {string} options.itemName - Name for the item
+ * @param {string} options.columnValues - JSON string of column values
+ * @returns {Promise<{id: string, name: string}>} Created item
+ */
+async function createItem({ boardId, groupId, itemName, columnValues }) {
+  const client = createClient();
+
+  const query = `
+    mutation CreateItem(
+      $boardId: ID!,
+      $groupId: String!,
+      $itemName: String!,
+      $columnValues: JSON!
+    ) {
+      create_item(
+        board_id: $boardId,
+        group_id: $groupId,
+        item_name: $itemName,
+        column_values: $columnValues
+      ) {
+        id
+        name
+      }
+    }
+  `;
+
+  const variables = {
+    boardId,
+    groupId,
+    itemName,
+    columnValues
+  };
+
+  const response = await client.post("", { query, variables });
+
+  if (response.data.errors) {
+    throw new Error(JSON.stringify(response.data.errors, null, 2));
+  }
+
+  return response.data.data.create_item;
+}
+
+/**
+ * Create an RTT system item on Monday.com
+ *
+ * @param {Object} system - RTT system data
+ * @param {string} groupId - Target group ID
+ * @param {Object} [capDatetime] - Optional DateTime object for capture timestamp
+ * @returns {Promise<{id: string, name: string}>} Created item
+ */
+async function createRttItem(system, groupId, capDatetime = null) {
+  const itemName = system.Description || system.description || "RTT Item";
+  const columnValues = buildRTTColumnValues(system, capDatetime);
+
+  return createItem({
+    boardId: mondayConfig.RTT_FEED.boardId,
+    groupId,
+    itemName,
+    columnValues
+  });
+}
+
+/**
+ * Insert multiple RTT systems to Monday.com with logging
+ *
+ * @param {Array} systems - Array of RTT system objects
+ * @param {Object} capDatetime - DateTime object for capture timestamp
+ * @param {string} groupId - Target group ID
+ * @param {Object} [options] - Additional options
+ * @param {number} [options.delayMs=0] - Delay between inserts (for rate limiting)
+ * @param {boolean} [options.logProgress=true] - Whether to log progress
+ * @returns {Promise<{success: number, errors: number}>} Results summary
+ */
+async function insertRttSystems(systems, capDatetime, groupId, options = {}) {
+  const { delayMs = 0, logProgress = true } = options;
+  let success = 0;
+  let errors = 0;
+
+  for (const system of systems) {
+    try {
+      const result = await createRttItem(system, groupId, capDatetime);
+      success++;
+
+      if (logProgress) {
+        console.log(
+          `Created RTT Item: ${result.id} for ${system.Description || system.description}`
+        );
+      }
+
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    } catch (err) {
+      errors++;
+      console.error(
+        `Error creating item for ${system.Description || system.description}:`,
+        err.message
+      );
+    }
+  }
+
+  return { success, errors };
+}
+
+module.exports = {
+  createClient,
+  createItem,
+  createRttItem,
+  insertRttSystems
+};
