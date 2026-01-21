@@ -3,8 +3,11 @@ require("dotenv").config();
 const {
   inspect_board,
   get_board_info,
-  update_rtt_board
+  update_rtt_board,
+  group_by_coverage,
+  sync_missing_data
 } = require("./jobs");
+const inspect_missing_data_board = require("./jobs/inspect-missing-data-board");
 const { capture_datetime } = require("./tools");
 
 const run_job = async (job) => {
@@ -21,6 +24,15 @@ const run_job = async (job) => {
       break;
     case "equipment_rtt":
       await update_rtt_board(cap_dt);
+      break;
+    case "group_coverage":
+      await group_by_coverage();
+      break;
+    case "sync_missing_data":
+      await sync_missing_data();
+      break;
+    case "inspect_missing_data_board":
+      await inspect_missing_data_board();
       break;
     default:
       break;
