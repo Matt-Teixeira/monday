@@ -1,9 +1,10 @@
 // inspect_board.js
 require("dotenv").config();
 const axios = require("axios");
+const mondayConfig = require("../config/monday-boards");
 
 const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN; // from .env
-const BOARD_ID = process.env.MONDAY_BOARD_ID_3; // your MRI-Platform-Reporting board ID
+const BOARD_ID = mondayConfig.RTT_FEED.boardId; // RTT Feed board ID from config
 
 const monday = axios.create({
   baseURL: "https://api.monday.com/v2",
