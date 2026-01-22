@@ -5,10 +5,11 @@ const {
   get_all_acumatica_rtt_feed_rmv,
   insertNewRttSystem
 } = require("../../sql/qf-provider");
-const { diff_by_key } = require("../../tools");
+const { diff_by_key, send_teams_card } = require("../../tools");
 const { insertRttSystems } = require("../../api/monday-client");
 const { syncMissingDataFromSystems } = require("../sync-missing-data");
 const mondayConfig = require("../../config/monday-boards");
+const { getCoverageInfo } = require("../../config/remote-coverage");
 
 const update_rtt_board = async (cap_datetime) => {
   // Get systems from DB and API
@@ -70,6 +71,23 @@ const update_rtt_board = async (cap_datetime) => {
       console.log(
         `Done syncing New Additions (${newAdditionsResult.success} success, ${newAdditionsResult.errors} errors)`
       );
+
+      // Send Teams cards for qualifying systems based on RemoteCoverage
+      console.log(`\nSending Teams notifications for qualifying systems...`);
+      let teamsCardsSent = 0;
+      for (const system of added_rtt) {
+        const coverageInfo = getCoverageInfo(system.RemoteCoverage);
+
+        if (coverageInfo.mmb === true) {
+          await send_teams_card(system, "MMB");
+          teamsCardsSent++;
+        }
+        if (coverageInfo.hhm === true) {
+          await send_teams_card(system, "HHM");
+          teamsCardsSent++;
+        }
+      }
+      console.log(`Sent ${teamsCardsSent} Teams notifications`);
 
       // 3. MISSING_DATA group
       console.log(

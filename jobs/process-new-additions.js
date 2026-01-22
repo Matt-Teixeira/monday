@@ -2,7 +2,6 @@ const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const { moveItemToGroup } = require("../api/monday-client");
 const { getCoverageInfo } = require("../config/remote-coverage");
 const mondayConfig = require("../config/monday-boards");
-const { send_teams_card } = require("../tools");
 const {
   format_for_mmb_workflow,
   insert_to_mmb_cust
@@ -158,7 +157,6 @@ const process_new_additions = async () => {
           console.log(`  -> Inserting to MMB-Cust-Workflow...`);
           const formatted = format_for_mmb_workflow(system);
           await insert_to_mmb_cust(formatted);
-          await send_teams_card(system, "MMB");
           console.log(`  -> Added to MMB Feed: ${formatted.name}`);
           mmbCount++;
         }
@@ -168,7 +166,6 @@ const process_new_additions = async () => {
           console.log(`  -> Inserting to HHM-Cust-Workflow...`);
           const formatted = format_for_hhm_workflow(system);
           await insert_to_hhm_cust(formatted);
-          await send_teams_card(system, "HHM");
           console.log(`  -> Added to HHM Feed: ${formatted.name}`);
           hhmCount++;
         }
