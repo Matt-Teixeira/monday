@@ -14,7 +14,8 @@ module.exports = {
       TOPICS: 'topics',
       NEW_ADDITIONS: 'group_mkzb5ahp',
       REMOVED: 'group_mkzbkhkt',
-      MISSING_DATA: 'group_mkzsx8tb'
+      MISSING_DATA: 'group_mkzsx8tb',
+      WORKFLOW_PROCESSED: 'group_mkzvcfxp'
     },
 
     columns: {
@@ -93,7 +94,78 @@ module.exports = {
       EMPLOYEE_NAME_2: 'text_mkyfrrz9',
 
       // Timestamps
-      CAPTURE_DATETIME: 'date_mkypgn4f'
+      CAPTURE_DATETIME: 'date_mkypgn4f',
+
+      // User assignment
+      SUB_GROUP: 'text_mkzt9pcm'
+    }
+  },
+
+  /**
+   * HHM Customer Workflow Board Configuration
+   */
+  HHM_CUST_WORKFLOW: {
+    boardId: process.env.HHM_CUST_WORKFLOW_ID,
+
+    groups: {
+      NEW_HHM_SYSTEMS: 'topics'
+    },
+
+    columns: {
+      REMOTE_CONNECTIVITY_STATUS: 'color_mkztyftg',
+      CUSTOMER_ID: 'text_mkyfbpee',
+      LOCATION_ID: 'text_mkyf6p0x',
+      SERVICE_CONTRACT_ID: 'text_mkyfyhr0',
+      CUSTOMER_CONTRACT_ID: 'text_mkyfba0y',
+      EQUIPMENT_DESCRIPTION: 'text_mkyfyb98',
+      SERIAL_NBR: 'text_mkyfsnjp',
+      STATUS: 'text_mkyfdta3',
+      ROOM: 'text_mkyf4nqv',
+      SOFTWARE_RELEASE: 'text_mkyf6y7e',
+      SYSTEM_IP_ADDRESS: 'text_mkyftz9a',
+      MODALITY: 'text_mkyfk8xm',
+      MODEL_DESCRIPTION: 'text_mkyfnce5',
+      CUSTOMER_NAME: 'text_mkyf9nmy',
+      LOCATION_NAME: 'text_mkyfw4xn',
+      ADDRESS_LINE1: 'text_mkyfzn5b',
+      ADDRESS_LINE2: 'text_mkyf6fmd',
+      CITY: 'text_mkyfm6yt',
+      STATE: 'text_mkyfk2we',
+      POSTAL_CODE: 'text_mkyfp1vm',
+      MODEL: 'text_mkyfek5s',
+      CUSTOMER_UNIQUE_ID: 'text_mkyfc4e9',
+      MANUFACTURER: 'text_mkyf8pat',
+      LAST_PM_COMPLETED: 'text_mkyfmws4',
+      PM_FREQUENCY_IN_MONTHS: 'text_mkyf6jdh',
+      LEGACY_EQUIPMENT_ID: 'text_mkyfy5m1',
+      SHOW_ON_REMOTE_SERVICES_WEBSITE: 'text_mkyf3e0p',
+      SERVICE_CONTRACT_CUSTOMER_ID: 'text_mkyf5ccy',
+      SERVICE_CONTRACT_CUSTOMER_NAME: 'text_mkyfgfhd',
+      CUSTOMER_CONTRACT_CUSTOMER_ID: 'text_mkyfe84s',
+      CUSTOMER_CONTRACT_CUSTOMER_NAME: 'text_mkyfzd0g',
+      SERVICE_CONTRACT_STATUS: 'text_mkyft88f',
+      CUSTOMER_CONTRACT_STATUS: 'text_mkyffwj2',
+      SERVICE_CONTRACT_LOCATION_ID: 'text_mkyf1hxh',
+      SERVICE_CONTRACT_LOCATION_NAME: 'text_mkyfs9mr',
+      CUSTOMER_CONTRACT_LOCATION_ID: 'text_mkyfpqpd',
+      CUSTOMER_CONTRACT_LOCATION_NAME: 'text_mkyftcwr',
+      EXPIRATION_DATE: 'text_mkyf5kda',
+      MMB_CONTROL_NUMBER: 'text_mkyffczk',
+      IGAH_CREATED: 'text_mkyfw4ya',
+      IGAH_CREATED_BY: 'text_mkyfrpcp',
+      IGAH_UPDATED_BY: 'text_mkyf9r2g',
+      IGAH_UPDATED: 'text_mkyfv5dz',
+      IGAH_ACTIVE: 'text_mkyf6kdy',
+      PRIMARY_ENGINEER: 'text_mkyf17nb',
+      REMOTE_CONNECTIVITY_IMPLEMENTED: 'text_mkyfrkz2',
+      PRIMARY_ENGINEER_2: 'text_mkyfvfxe',
+      EMPLOYEE_NAME: 'text_mkyfgxms',
+      SECONDARY_ENGINEER: 'text_mkyfvdzx',
+      SECONDARY_ENGINEER_2: 'text_mkyfd9h7',
+      EMPLOYEE_NAME_2: 'text_mkyfrrz9',
+      REMOTE_COVERAGE: 'text_mkzdqcx3',
+      CAPTURE_DATETIME: 'date_mkypgn4f',
+      SUB_GROUP: 'text_mkzt9pcm'
     }
   },
 

@@ -28,19 +28,7 @@ const fieldDescriptions = {
   ManufacturerID: "Manufacturer ID - Internal manufacturer identifier"
 };
 
-/**
- * Optional: Field display names for Monday.com or reports
- */
-const fieldDisplayNames = {
-  Description: "Equipment ID",
-  Modality: "System Type",
-  AddressLine1: "Address",
-  Manufacturer: "Manufacturer",
-  ManufacturerID: "Mfr ID"
-};
-
 module.exports = {
   requiredFields,
-  fieldDescriptions,
-  fieldDisplayNames
+  fieldDescriptions
 };

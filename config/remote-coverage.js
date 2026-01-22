@@ -150,45 +150,9 @@ function getCoverageInfo(remoteCoverageType, options = {}) {
   return null;
 }
 
-// Helper function to check if a system should be processed for HHM
-function isHHMEnabled(remoteCoverageType) {
-  const coverage = getCoverageInfo(remoteCoverageType);
-  return coverage.hhm === true;
-}
-
-// Helper function to check if a system should be processed for MMB
-function isMMBEnabled(remoteCoverageType) {
-  const coverage = getCoverageInfo(remoteCoverageType);
-  return coverage.mmb === true;
-}
-
-// Helper function to check if customer has Vision access
-function hasCustomerAccess(remoteCoverageType) {
-  const coverage = getCoverageInfo(remoteCoverageType);
-  return coverage.customerAccess === true;
-}
-
-// Helper function to filter systems by coverage criteria
-function filterSystemsByCoverage(systems, criteria) {
-  return systems.filter(system => {
-    const coverage = getCoverageInfo(system.RemoteCoverage);
-
-    if (criteria.hhm !== undefined && coverage.hhm !== criteria.hhm) return false;
-    if (criteria.mmb !== undefined && coverage.mmb !== criteria.mmb) return false;
-    if (criteria.customerAccess !== undefined && coverage.customerAccess !== criteria.customerAccess) return false;
-    if (criteria.excludeDeprecated && coverage.deprecated) return false;
-
-    return true;
-  });
-}
-
 module.exports = {
   remoteCoverageMatrix,
   getCoverageInfo,
   findCoverageTypeByPattern,
-  normalizeString,
-  isHHMEnabled,
-  isMMBEnabled,
-  hasCustomerAccess,
-  filterSystemsByCoverage
+  normalizeString
 };
