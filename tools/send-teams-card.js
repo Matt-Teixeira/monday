@@ -1,6 +1,6 @@
 const { default: axios } = require("axios");
 
-async function send_teams_card(system) {
+async function send_teams_card(system, workflowType = "MMB") {
   const url = process.env.TEAMS_WH_REMOTE_TECH;
 
   const card = {
@@ -18,11 +18,11 @@ async function send_teams_card(system) {
               type: "TextBlock",
               size: "Large",
               weight: "Bolder",
-              text: "MMB-Workflow Update"
+              text: `**TEST ${workflowType}-Workflow Update TEST**`
             },
             {
               type: "TextBlock",
-              text: `**${system.Description}**`,
+              text: `**TEST ${system.Description} TEST**`,
               wrap: true
             },
             {
