@@ -18,11 +18,11 @@ async function send_teams_card(system, workflowType = "MMB") {
               type: "TextBlock",
               size: "Large",
               weight: "Bolder",
-              text: `**TEST ${workflowType}-Workflow Update TEST**`
+              text: `${workflowType}-Workflow Update`
             },
             {
               type: "TextBlock",
-              text: `**TEST ${system.Description} TEST**`,
+              text: `${system.Description}`,
               wrap: true
             },
             {
