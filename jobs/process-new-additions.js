@@ -1,0 +1,209 @@
+const { getMondayBoardItems } = require("../api/get-monday-board-items");
+const { moveItemToGroup } = require("../api/monday-client");
+const { getCoverageInfo } = require("../config/remote-coverage");
+const mondayConfig = require("../config/monday-boards");
+const { send_teams_card } = require("../tools");
+const {
+  format_for_mmb_workflow,
+  insert_to_mmb_cust
+} = require("./update-mri-report-board/update-cust-workflow");
+const {
+  format_for_hhm_workflow,
+  insert_to_hhm_cust
+} = require("./update-hhm-report-board/update-hhm-workflow");
+
+const SUB_GROUP_COLUMN_ID = mondayConfig.RTT_FEED.columns.SUB_GROUP;
+const REMOTE_COVERAGE_COLUMN_ID = mondayConfig.RTT_FEED.columns.REMOTE_COVERAGE;
+
+/**
+ * Extract column value text by column ID from Monday item
+ */
+function getColumnValue(item, columnId) {
+  const column = item.column_values.find((col) => col.id === columnId);
+  return column?.text?.trim() || "";
+}
+
+/**
+ * Convert Monday item column values back to system object format
+ * Maps Monday column IDs to API-style property names (all fields)
+ */
+function itemToSystemObject(item) {
+  const getValue = (colId) => getColumnValue(item, colId);
+  const cols = mondayConfig.RTT_FEED.columns;
+
+  return {
+    Description: item.name,
+    CustomerID: getValue(cols.CUSTOMER_ID),
+    LocationID: getValue(cols.LOCATION_ID),
+    ServiceContractID: getValue(cols.SERVICE_CONTRACT_ID),
+    CustomerContractID: getValue(cols.CUSTOMER_CONTRACT_ID),
+    EquipmentDescription: getValue(cols.EQUIPMENT_DESCRIPTION),
+    SerialNbr: getValue(cols.SERIAL_NBR),
+    Status: getValue(cols.STATUS),
+    Room: getValue(cols.ROOM),
+    SoftwareRelease: getValue(cols.SOFTWARE_RELEASE),
+    SystemIPAddress: getValue(cols.SYSTEM_IP_ADDRESS),
+    Modality: getValue(cols.MODALITY),
+    ModelDescription: getValue(cols.MODEL_DESCRIPTION),
+    CustomerName: getValue(cols.CUSTOMER_NAME),
+    LocationName: getValue(cols.LOCATION_NAME),
+    AddressLine1: getValue(cols.ADDRESS_LINE1),
+    AddressLine2: getValue(cols.ADDRESS_LINE2),
+    City: getValue(cols.CITY),
+    State: getValue(cols.STATE),
+    PostalCode: getValue(cols.POSTAL_CODE),
+    Model: getValue(cols.MODEL),
+    CustomerUniqueID: getValue(cols.CUSTOMER_UNIQUE_ID),
+    Manufacturer: getValue(cols.MANUFACTURER),
+    LastPMCompleted: getValue(cols.LAST_PM_COMPLETED),
+    PMFrequencyinmonths: getValue(cols.PM_FREQUENCY_IN_MONTHS),
+    LegacyEquipmentID: getValue(cols.LEGACY_EQUIPMENT_ID),
+    ShowonRemoteServicesWebsite: getValue(cols.SHOW_ON_REMOTE_SERVICES_WEBSITE),
+    RemoteConnectivityImplemeted: getValue(cols.REMOTE_CONNECTIVITY_IMPLEMENTED),
+    RemoteCoverage: getValue(cols.REMOTE_COVERAGE),
+    ServiceContractCustomerID: getValue(cols.SERVICE_CONTRACT_CUSTOMER_ID),
+    ServiceContractCustomerName: getValue(cols.SERVICE_CONTRACT_CUSTOMER_NAME),
+    CustomerContractCustomerID: getValue(cols.CUSTOMER_CONTRACT_CUSTOMER_ID),
+    CustomerContractCustomerName: getValue(cols.CUSTOMER_CONTRACT_CUSTOMER_NAME),
+    ServiceContractStatus: getValue(cols.SERVICE_CONTRACT_STATUS),
+    CustomerContractStatus: getValue(cols.CUSTOMER_CONTRACT_STATUS),
+    ServiceContractLocationID: getValue(cols.SERVICE_CONTRACT_LOCATION_ID),
+    ServiceContractLocationName: getValue(cols.SERVICE_CONTRACT_LOCATION_NAME),
+    CustomerContractLocationID: getValue(cols.CUSTOMER_CONTRACT_LOCATION_ID),
+    CustomerContractLocationName: getValue(cols.CUSTOMER_CONTRACT_LOCATION_NAME),
+    ExpirationDate: getValue(cols.EXPIRATION_DATE),
+    MMBControlNumber: getValue(cols.MMB_CONTROL_NUMBER),
+    IGAHCreated: getValue(cols.IGAH_CREATED),
+    IGAHCreatedBy: getValue(cols.IGAH_CREATED_BY),
+    IGAHUpdatedBy: getValue(cols.IGAH_UPDATED_BY),
+    IGAHUpdated: getValue(cols.IGAH_UPDATED),
+    IGAHActive: getValue(cols.IGAH_ACTIVE),
+    PrimaryEngineer: getValue(cols.PRIMARY_ENGINEER),
+    PrimaryEngineer_2: getValue(cols.PRIMARY_ENGINEER_2),
+    EmployeeName: getValue(cols.EMPLOYEE_NAME),
+    SecondaryEngineer: getValue(cols.SECONDARY_ENGINEER),
+    SecondaryEngineer_2: getValue(cols.SECONDARY_ENGINEER_2),
+    EmployeeName_2: getValue(cols.EMPLOYEE_NAME_2),
+    CaptureDateTime: getValue(cols.CAPTURE_DATETIME),
+    SubGroup: getValue(cols.SUB_GROUP)
+  };
+}
+
+/**
+ * Process new RTT additions that have been assigned a Sub-Group
+ * Routes systems to MMB and/or HHM boards based on RemoteCoverage
+ */
+const process_new_additions = async () => {
+  console.log(
+    "\n=== Processing NEW_ADDITIONS with Sub-Group assignments ===\n"
+  );
+
+  try {
+    // Fetch items from NEW_ADDITIONS group
+    const { items } = await getMondayBoardItems(
+      mondayConfig.RTT_FEED.boardId,
+      [mondayConfig.RTT_FEED.groups.NEW_ADDITIONS]
+    );
+
+    console.log(`Found ${items.length} total items in NEW_ADDITIONS group`);
+
+    // Filter items that have Sub-Group assigned
+    const itemsWithSubGroup = items.filter((item) => {
+      const subGroup = getColumnValue(item, SUB_GROUP_COLUMN_ID);
+      return subGroup && subGroup.length > 0;
+    });
+
+    console.log(
+      `Found ${itemsWithSubGroup.length} items with Sub-Group assigned\n`
+    );
+
+    if (itemsWithSubGroup.length === 0) {
+      console.log("No items to process. Exiting.");
+      return { processed: 0, mmb: 0, hhm: 0, moved: 0, skipped: 0, errors: 0 };
+    }
+
+    const WORKFLOW_PROCESSED_GROUP = mondayConfig.RTT_FEED.groups.WORKFLOW_PROCESSED;
+
+    let mmbCount = 0;
+    let hhmCount = 0;
+    let movedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (const item of itemsWithSubGroup) {
+      const remoteCoverage = getColumnValue(item, REMOTE_COVERAGE_COLUMN_ID);
+      const subGroup = getColumnValue(item, SUB_GROUP_COLUMN_ID);
+      const coverageInfo = getCoverageInfo(remoteCoverage);
+
+      console.log(`\nProcessing: ${item.name}`);
+      console.log(`  Sub-Group: ${subGroup}`);
+      console.log(`  RemoteCoverage: ${remoteCoverage}`);
+      console.log(`  MMB: ${coverageInfo.mmb}, HHM: ${coverageInfo.hhm}`);
+
+      // Convert Monday item to system object for workflow functions
+      const system = itemToSystemObject(item);
+
+      // Skip items with no matching RemoteCoverage
+      if (coverageInfo.mmb !== true && coverageInfo.hhm !== true) {
+        console.log(
+          `  -> No matching coverage, skipping (stays in NEW_ADDITIONS)`
+        );
+        skippedCount++;
+        continue;
+      }
+
+      try {
+        // Route to MMB if coverage indicates mmb: true
+        if (coverageInfo.mmb === true) {
+          console.log(`  -> Inserting to MMB-Cust-Workflow...`);
+          const formatted = format_for_mmb_workflow(system);
+          await insert_to_mmb_cust(formatted);
+          await send_teams_card(system, "MMB");
+          console.log(`  -> Added to MMB Feed: ${formatted.name}`);
+          mmbCount++;
+        }
+
+        // Route to HHM if coverage indicates hhm: true
+        if (coverageInfo.hhm === true) {
+          console.log(`  -> Inserting to HHM-Cust-Workflow...`);
+          const formatted = format_for_hhm_workflow(system);
+          await insert_to_hhm_cust(formatted);
+          await send_teams_card(system, "HHM");
+          console.log(`  -> Added to HHM Feed: ${formatted.name}`);
+          hhmCount++;
+        }
+
+        // Move to WORKFLOW_PROCESSED group after routing
+        console.log(`  -> Moving to Workflow-Processed...`);
+        await moveItemToGroup(item.id, WORKFLOW_PROCESSED_GROUP);
+        movedCount++;
+        console.log(`  -> Moved item ${item.id}`);
+      } catch (err) {
+        console.error(`  -> ERROR processing ${item.name}: ${err.message}`);
+        errorCount++;
+      }
+    }
+
+    console.log("\n=== Processing Complete ===");
+    console.log(`Processed: ${itemsWithSubGroup.length}`);
+    console.log(`Routed to MMB: ${mmbCount}`);
+    console.log(`Routed to HHM: ${hhmCount}`);
+    console.log(`Moved to Workflow-Processed: ${movedCount}`);
+    console.log(`Skipped (no matching coverage): ${skippedCount}`);
+    console.log(`Errors: ${errorCount}`);
+
+    return {
+      processed: itemsWithSubGroup.length,
+      mmb: mmbCount,
+      hhm: hhmCount,
+      moved: movedCount,
+      skipped: skippedCount,
+      errors: errorCount
+    };
+  } catch (error) {
+    console.error("Error in process_new_additions:", error);
+    throw error;
+  }
+};
+
+module.exports = process_new_additions;
