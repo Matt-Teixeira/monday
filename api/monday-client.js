@@ -131,9 +131,40 @@ async function insertRttSystems(systems, capDatetime, groupId, options = {}) {
   return { success, errors };
 }
 
+/**
+ * Move an item to a different group on the same board
+ *
+ * @param {string} itemId - The ID of the item to move
+ * @param {string} groupId - The target group ID
+ * @returns {Promise<{id: string}>} Moved item info
+ */
+async function moveItemToGroup(itemId, groupId) {
+  const client = createClient();
+
+  const query = `
+    mutation MoveItem($itemId: ID!, $groupId: String!) {
+      move_item_to_group(item_id: $itemId, group_id: $groupId) {
+        id
+      }
+    }
+  `;
+
+  const response = await client.post("", {
+    query,
+    variables: { itemId, groupId }
+  });
+
+  if (response.data.errors) {
+    throw new Error(JSON.stringify(response.data.errors, null, 2));
+  }
+
+  return response.data.data.move_item_to_group;
+}
+
 module.exports = {
   createClient,
   createItem,
   createRttItem,
-  insertRttSystems
+  insertRttSystems,
+  moveItemToGroup
 };
