@@ -5,7 +5,8 @@ const {
   get_board_info,
   update_rtt_board,
   group_by_coverage,
-  sync_missing_data
+  sync_missing_data,
+  process_new_additions
 } = require("./jobs");
 const inspect_missing_data_board = require("./jobs/inspect-missing-data-board");
 const { capture_datetime } = require("./tools");
@@ -33,6 +34,9 @@ const run_job = async (job) => {
       break;
     case "inspect_missing_data_board":
       await inspect_missing_data_board();
+      break;
+    case "process_new_additions":
+      await process_new_additions();
       break;
     default:
       break;

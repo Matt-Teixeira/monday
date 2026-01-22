@@ -1,17 +1,9 @@
 require("dotenv").config();
-const axios = require("axios");
+const { createClient } = require("../api/monday-client");
 const mondayConfig = require("../config/monday-boards");
 
-const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
 const BOARD_ID = mondayConfig.RTT_FEED.boardId;
-
-const monday = axios.create({
-  baseURL: "https://api.monday.com/v2",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: MONDAY_API_TOKEN
-  }
-});
+const monday = createClient();
 
 /**
  * Inspect the Missing Data board to find group IDs

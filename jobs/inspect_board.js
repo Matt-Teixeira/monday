@@ -1,18 +1,12 @@
 // inspect_board.js
 require("dotenv").config();
-const axios = require("axios");
+const { createClient } = require("../api/monday-client");
 const mondayConfig = require("../config/monday-boards");
 
-const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN; // from .env
-const BOARD_ID = mondayConfig.RTT_FEED.boardId; // RTT Feed board ID from config
-
-const monday = axios.create({
-  baseURL: "https://api.monday.com/v2",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: MONDAY_API_TOKEN
-  }
-});
+const BOARD_ID = process.env.MMB_CUST_WORKFLOW_ID; 
+// MMB_CUST_WORKFLOW_ID
+// MONDAY_BOARD_ID_3
+const monday = createClient();
 
 async function inspect_board() {
   const query = `
