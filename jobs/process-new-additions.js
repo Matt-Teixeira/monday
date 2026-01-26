@@ -13,6 +13,7 @@ const {
 
 const SUB_GROUP_COLUMN_ID = mondayConfig.RTT_FEED.columns.SUB_GROUP;
 const REMOTE_COVERAGE_COLUMN_ID = mondayConfig.RTT_FEED.columns.REMOTE_COVERAGE;
+const MODALITY_COLUMN_ID = mondayConfig.RTT_FEED.columns.MODALITY;
 
 /**
  * Extract column value text by column ID from Monday item
@@ -142,18 +143,31 @@ const process_new_additions = async () => {
       // Convert Monday item to system object for workflow functions
       const system = itemToSystemObject(item);
 
-      // Skip items with no matching RemoteCoverage
-      if (coverageInfo.mmb !== true && coverageInfo.hhm !== true) {
-        console.log(
-          `  -> No matching coverage, skipping (stays in NEW_ADDITIONS)`
-        );
-        skippedCount++;
-        continue;
+      // Determine routing - use modality-based fallback if no clear coverage
+      let routeToMmb = coverageInfo.mmb === true;
+      let routeToHhm = coverageInfo.hhm === true;
+
+      // Secondary check: If RemoteCoverage doesn't provide routing, use Modality
+      if (!routeToMmb && !routeToHhm) {
+        const modality = getColumnValue(item, MODALITY_COLUMN_ID);
+        console.log(`  -> No coverage routing, checking Modality: "${modality}"`);
+
+        if (modality && modality.toUpperCase() === "MRI") {
+          routeToMmb = true;
+          console.log(`  -> Modality is MRI, routing to MMB`);
+        } else if (modality) {
+          routeToHhm = true;
+          console.log(`  -> Modality is ${modality}, routing to HHM`);
+        } else {
+          console.log(`  -> No Modality value, skipping (stays in NEW_ADDITIONS)`);
+          skippedCount++;
+          continue;
+        }
       }
 
       try {
         // Route to MMB if coverage indicates mmb: true
-        if (coverageInfo.mmb === true) {
+        if (routeToMmb) {
           console.log(`  -> Inserting to MMB-Cust-Workflow...`);
           const formatted = format_for_mmb_workflow(system);
           await insert_to_mmb_cust(formatted);
@@ -162,7 +176,7 @@ const process_new_additions = async () => {
         }
 
         // Route to HHM if coverage indicates hhm: true
-        if (coverageInfo.hhm === true) {
+        if (routeToHhm) {
           console.log(`  -> Inserting to HHM-Cust-Workflow...`);
           const formatted = format_for_hhm_workflow(system);
           await insert_to_hhm_cust(formatted);
