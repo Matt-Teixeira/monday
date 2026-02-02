@@ -2,11 +2,13 @@
 require("dotenv").config();
 const {
   inspect_board,
+  interactive_inspect,
   get_board_info,
   update_rtt_board,
   group_by_coverage,
   sync_missing_data,
-  process_new_additions
+  process_new_additions,
+  new_avconn_tickets
 } = require("./jobs");
 const inspect_missing_data_board = require("./jobs/inspect-missing-data-board");
 const { capture_datetime } = require("./tools");
@@ -18,10 +20,17 @@ const run_job = async (job) => {
       await inspect_board();
       break;
 
+    case "inspect_interactive":
+      await interactive_inspect();
+      break;
+
     case "board_info":
       let bi = await get_board_info();
+      for (let i of bi.items_page.items) {
+        if (i.group.title === "Open tickets") console.log(i);
+      }
 
-      console.log(bi.items_page.items);
+      // console.log(bi.items_page.items);
       break;
     case "equipment_rtt":
       await update_rtt_board(cap_dt);
@@ -37,6 +46,9 @@ const run_job = async (job) => {
       break;
     case "process_new_additions":
       await process_new_additions();
+      break;
+    case "new_avconn_tickets":
+      await new_avconn_tickets();
       break;
     default:
       break;
