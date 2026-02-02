@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { createClient } = require("../api/monday-client");
 
-const BOARD_ID = process.env.MMB_CUST_WORKFLOW_ID;
+const BOARD_ID = process.env.MONDAY_BOARD_TICKETS;
 const monday = createClient();
 
 async function get_board_info() {
@@ -10,7 +10,7 @@ async function get_board_info() {
       boards(ids: $boardId) {
         id
         name
-        items_page(limit: 50) {
+        items_page(limit: 100) {
           items {
             id
             name            # "Item" column (your SME number)
