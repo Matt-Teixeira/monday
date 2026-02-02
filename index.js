@@ -26,11 +26,7 @@ const run_job = async (job) => {
 
     case "board_info":
       let bi = await get_board_info();
-      for (let i of bi.items_page.items) {
-        if (i.group.title === "Open tickets") console.log(i);
-      }
-
-      // console.log(bi.items_page.items);
+      console.log(bi.items_page.items);
       break;
     case "equipment_rtt":
       await update_rtt_board(cap_dt);
