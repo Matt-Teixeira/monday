@@ -8,7 +8,8 @@ module.exports = {
    * RTT Feed Board Configuration
    */
   RTT_FEED: {
-    boardId: process.env.MONDAY_BOARD_ID_3,
+    boardId: process.env.MONDAY_BOARD_ID_RTT_FEED,
+    displayName: "RTT Feed",
 
     groups: {
       TOPICS: 'topics',
@@ -105,7 +106,8 @@ module.exports = {
    * HHM Customer Workflow Board Configuration
    */
   HHM_CUST_WORKFLOW: {
-    boardId: process.env.HHM_CUST_WORKFLOW_ID,
+    boardId: process.env.MONDAY_BOARD_HHM_CUST_WORKFLOW,
+    displayName: "HHM Customer Workflow",
 
     groups: {
       NEW_HHM_SYSTEMS: 'topics'
@@ -170,6 +172,68 @@ module.exports = {
   },
 
   /**
+   * MMB Customer Workflow Board Configuration
+   */
+  MMB_CUST_WORKFLOW: {
+    boardId: process.env.MONDAY_BOARD_MMB_CUST_WORKFLOW,
+    displayName: "MMB Customer Workflow",
+    groups: {},
+    columns: {}
+  },
+
+  /**
+   * MRI Platform Reporting Board Configuration
+   */
+  MRI_PLATFORM_REPORTING: {
+    boardId: process.env.MONDAY_BOARD_MRI_PLATFORM_REPORTING,
+    displayName: "MRI Platform Reporting",
+    groups: {},
+    columns: {}
+  },
+
+  /**
+   * Alert Matrix Board Configuration
+   */
+  ALERT_MATRIX: {
+    boardId: process.env.MONDAY_BOARD_ALERT_MATRIX,
+    displayName: "Alert Matrix",
+    groups: {},
+    columns: {}
+  },
+
+  /**
+   * Tickets Board Configuration (source for RemoteTechnology tickets)
+   */
+  TICKETS: {
+    boardId: process.env.MONDAY_BOARD_TICKETS,
+    displayName: "Tickets",
+    groups: {
+      OPEN_TICKETS: 'group_title',
+      UNASSIGNED_TICKETS: 'topics'
+    },
+    columns: {
+      LONG_TEXT: 'long_text7'
+    }
+  },
+
+  /**
+   * Avante Connected Tickets Board Configuration (destination)
+   */
+  AVCONN_TICKETS: {
+    boardId: process.env.MONDAY_BOARD_AVCONN_TICKETS,
+    displayName: "New Tickets",
+    groups: {
+      NEW: 'topics'
+    },
+    columns: {
+      TICKET_ID: 'text_mm06fp18',
+      PERSON: 'person',
+      STATUS: 'status',
+      DATE: 'date4'
+    }
+  },
+
+  /**
    * Get group ID by name
    * @param {string} board - Board name (e.g., 'RTT_FEED')
    * @param {string} groupName - Group name (e.g., 'TOPICS', 'NEW_ADDITIONS')
@@ -187,5 +251,19 @@ module.exports = {
    */
   getColumnId(board, columnName) {
     return this[board].columns[columnName];
+  },
+
+  /**
+   * Get all boards for interactive menu
+   * @returns {Array<{key: string, displayName: string, boardId: string}>}
+   */
+  getAllBoards() {
+    return Object.entries(this)
+      .filter(([key, val]) => typeof val === 'object' && val.boardId)
+      .map(([key, val]) => ({
+        key,
+        displayName: val.displayName || key,
+        boardId: val.boardId
+      }));
   }
 };

@@ -1,6 +1,6 @@
 const { createItem } = require("../../api/monday-client");
 
-const BOARD_ID = process.env.MMB_CUST_WORKFLOW_ID;
+const BOARD_ID = process.env.MONDAY_BOARD_MMB_CUST_WORKFLOW;
 const GROUP_ID = "topics";
 
 /**

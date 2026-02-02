@@ -1,7 +1,7 @@
 const { createItem } = require("../../api/monday-client");
 const { buildRTTColumnValues } = require("../../tools/monday-column-mapper");
 
-const BOARD_ID = process.env.HHM_CUST_WORKFLOW_ID;
+const BOARD_ID = process.env.MONDAY_BOARD_HHM_CUST_WORKFLOW;
 const GROUP_ID = "topics";
 
 /**
