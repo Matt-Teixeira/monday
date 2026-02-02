@@ -148,20 +148,19 @@ const process_new_additions = async () => {
       let routeToHhm = coverageInfo.hhm === true;
 
       // Secondary check: If RemoteCoverage doesn't provide routing, use Modality
+      // Always route to HHM for unknown coverage; also route to MMB if MRI
       if (!routeToMmb && !routeToHhm) {
         const modality = getColumnValue(item, MODALITY_COLUMN_ID);
         console.log(`  -> No coverage routing, checking Modality: "${modality}"`);
 
+        // Always send to HHM for unknown/empty RemoteCoverage
+        routeToHhm = true;
+
         if (modality && modality.toUpperCase() === "MRI") {
           routeToMmb = true;
-          console.log(`  -> Modality is MRI, routing to MMB`);
-        } else if (modality) {
-          routeToHhm = true;
-          console.log(`  -> Modality is ${modality}, routing to HHM`);
+          console.log(`  -> Modality is MRI, routing to both MMB and HHM`);
         } else {
-          console.log(`  -> No Modality value, skipping (stays in NEW_ADDITIONS)`);
-          skippedCount++;
-          continue;
+          console.log(`  -> Routing to HHM (unknown coverage fallback)`);
         }
       }
 
