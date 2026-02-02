@@ -3,12 +3,9 @@ require("dotenv").config();
 const { createClient } = require("../api/monday-client");
 const mondayConfig = require("../config/monday-boards");
 
-const BOARD_ID = process.env.MMB_CUST_WORKFLOW_ID; 
-// MMB_CUST_WORKFLOW_ID
-// MONDAY_BOARD_ID_3
 const monday = createClient();
 
-async function inspect_board() {
+async function inspect_board(boardId = process.env.MONDAY_BOARD_TICKETS) {
   const query = `
     query GetBoardInfo($boardId: [ID!]!) {
       boards(ids: $boardId) {
@@ -26,7 +23,7 @@ async function inspect_board() {
     }
   `;
 
-  const variables = { boardId: BOARD_ID };
+  const variables = { boardId };
 
   try {
     const res = await monday.post("", { query, variables });
