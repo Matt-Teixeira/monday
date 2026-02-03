@@ -1,28 +1,42 @@
 require("dotenv").config();
 const { createClient } = require("../api/monday-client");
 
-const BOARD_ID = process.env.MONDAY_BOARD_TICKETS;
 const monday = createClient();
 
-async function get_board_info() {
+async function get_board_info(boardId = process.env.MONDAY_BOARD_TICKETS) {
   const query = `
     query GetBoardItems($boardId: [ID!]!) {
       boards(ids: $boardId) {
         id
         name
+        columns {
+          id
+          title
+          type
+        }
+        groups {
+          id
+          title
+        }
         items_page(limit: 100) {
           items {
             id
-            name            # "Item" column (your SME number)
+            name
+            created_at
+            updated_at
             group {
               id
               title
             }
             column_values {
               id
-              text          # human-readable value
-              type          # column type, e.g. "text"
-              value         # raw JSON as a string
+              text
+              type
+              value
+              column {
+                id
+                title
+              }
             }
           }
         }
@@ -30,7 +44,7 @@ async function get_board_info() {
     }
   `;
 
-  const variables = { boardId: BOARD_ID };
+  const variables = { boardId };
 
   const res = await monday.post("", { query, variables });
 

@@ -3,6 +3,7 @@ require("dotenv").config();
 const {
   inspect_board,
   interactive_inspect,
+  interactive_board_info,
   get_board_info,
   update_rtt_board,
   group_by_coverage,
@@ -22,6 +23,10 @@ const run_job = async (job) => {
 
     case "inspect_interactive":
       await interactive_inspect();
+      break;
+
+    case "board_info_interactive":
+      await interactive_board_info();
       break;
 
     case "board_info":
