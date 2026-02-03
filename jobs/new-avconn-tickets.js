@@ -3,10 +3,13 @@ const get_board_info = require("./get_board_info");
 const { createItem } = require("../api/monday-client");
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const mondayConfig = require("../config/monday-boards");
+const { itemMatchesPatterns } = require("../tools/ticket-pattern-matcher");
 
 /**
- * Find tickets containing "RemoteTechnology" in Open tickets group
+ * Find tickets matching configured patterns in Open/Unassigned tickets groups
  * and insert them into the AVCONN_TICKETS board (preventing duplicates)
+ *
+ * Patterns are configured in: config/ticket-filter-patterns.js
  */
 async function new_avconn_tickets() {
   console.log("Starting new_avconn_tickets job...");
@@ -15,17 +18,14 @@ async function new_avconn_tickets() {
   const sourceBoard = await get_board_info();
   const items = sourceBoard.items_page?.items || [];
 
-  // 2. Filter for "Open tickets" and "Unassigned tickets" groups containing "remotetechnology"
+  // 2. Filter for target groups and apply pattern matching
   const targetGroups = ["Open tickets", "Unassigned tickets"];
   const matchingTickets = items.filter((item) => {
     if (!targetGroups.includes(item.group.title)) return false;
-    return item.column_values.some(
-      (col) =>
-        col.text && col.text.toLowerCase().includes("remotetechnology")
-    );
+    return itemMatchesPatterns(item).matches;
   });
 
-  console.log(`Found ${matchingTickets.length} tickets with RemoteTechnology in ${targetGroups.join(" / ")}`);
+  console.log(`Found ${matchingTickets.length} tickets matching filter patterns in ${targetGroups.join(" / ")}`);
 
   if (matchingTickets.length === 0) {
     console.log("No matching tickets to process");
