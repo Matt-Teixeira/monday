@@ -8,6 +8,7 @@
 require("dotenv").config();
 const { get_acu_equip_rtt } = require("../api");
 const { getMondayItemNames } = require("../api/get-monday-board-items");
+const { capture_datetime } = require("../tools");
 const { insertRttSystems } = require("../api/monday-client");
 const {
   findSystemsWithMissingData,
@@ -29,7 +30,7 @@ const BOARD_ID = mondayConfig.RTT_FEED.boardId;
  * @param {boolean} [options.verbose=true] - Log detailed progress
  * @returns {Promise<{synced: number, skipped: number, errors: number}>}
  */
-async function syncMissingDataFromSystems(systems, options = {}) {
+async function syncMissingDataFromSystems(systems, capDatetime = null, options = {}) {
   const { skipDeltaCheck = false, verbose = true } = options;
 
   // Find systems with missing required data
@@ -85,7 +86,7 @@ async function syncMissingDataFromSystems(systems, options = {}) {
 
   // Insert to Monday
   const systemObjects = systemsToAdd.map((item) => item.system);
-  const result = await insertRttSystems(systemObjects, null, GROUP_ID, {
+  const result = await insertRttSystems(systemObjects, capDatetime, GROUP_ID, {
     delayMs: 500,
     logProgress: verbose
   });
@@ -128,7 +129,8 @@ async function syncMissingDataToMonday() {
     console.log("");
 
     // Run the sync
-    const result = await syncMissingDataFromSystems(systems, { verbose: true });
+    const capDatetime = capture_datetime();
+    const result = await syncMissingDataFromSystems(systems, capDatetime, { verbose: true });
 
     console.log("\n=== Sync Complete ===");
     console.log(`Successfully synced: ${result.synced} systems`);
