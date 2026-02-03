@@ -93,7 +93,7 @@ const update_rtt_board = async (cap_datetime) => {
       console.log(
         `\nChecking ${added_rtt.length} new systems for missing required data...`
       );
-      const missingDataResult = await syncMissingDataFromSystems(added_rtt, {
+      const missingDataResult = await syncMissingDataFromSystems(added_rtt, cap_datetime, {
         skipDeltaCheck: true,
         verbose: true
       });
@@ -108,7 +108,7 @@ const update_rtt_board = async (cap_datetime) => {
         `\nInserting ${add_to_rmv.length} removed systems to REMOVED group...`
       );
       const removedResult = await insertRttSystems(
-        removed_rtt,
+        add_to_rmv,
         cap_datetime,
         mondayConfig.RTT_FEED.groups.REMOVED
       );
@@ -118,6 +118,7 @@ const update_rtt_board = async (cap_datetime) => {
     }
   } catch (error) {
     console.error("Error in update_rtt_board:", error);
+    console.log(error);
   }
 };
 
