@@ -4,6 +4,7 @@ const { createItem } = require("../api/monday-client");
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const mondayConfig = require("../config/monday-boards");
 const { itemMatchesPatterns } = require("../tools/ticket-pattern-matcher");
+const send_avconn_ticket_card = require("../tools/send-avconn-ticket-card");
 
 /**
  * Find tickets matching configured patterns in Open/Unassigned tickets groups
@@ -53,9 +54,10 @@ async function new_avconn_tickets() {
 
   console.log(`${newTickets.length} new tickets to insert`);
 
-  // 5. Insert new tickets
+  // 5. Insert new tickets and send notifications
   let inserted = 0;
   let errors = 0;
+  let notificationsSent = 0;
 
   for (const ticket of newTickets) {
     try {
@@ -78,6 +80,16 @@ async function new_avconn_tickets() {
 
       console.log(`Inserted ticket: ${result.name} (ID: ${ticket.id})`);
       inserted++;
+
+      // Send Teams notification after successful insert
+      try {
+        const matchResult = itemMatchesPatterns(ticket);
+        await send_avconn_ticket_card(ticket, matchResult);
+        notificationsSent++;
+        console.log(`  -> Teams notification sent`);
+      } catch (teamsErr) {
+        console.error(`  -> Teams notification failed: ${teamsErr.message}`);
+      }
     } catch (err) {
       console.error(`Error inserting ticket ${ticket.id}:`, err.message);
       errors++;
@@ -89,9 +101,10 @@ async function new_avconn_tickets() {
   console.log("\n--- Summary ---");
   console.log(`Inserted: ${inserted}`);
   console.log(`Skipped (duplicates): ${skipped}`);
+  console.log(`Teams notifications: ${notificationsSent}`);
   console.log(`Errors: ${errors}`);
 
-  return { inserted, skipped, errors };
+  return { inserted, skipped, errors, notificationsSent };
 }
 
 module.exports = new_avconn_tickets;
