@@ -7,7 +7,7 @@ const {
 } = require("../../sql/qf-provider");
 const { diff_by_key, send_teams_card } = require("../../tools");
 const { insertRttSystems } = require("../../api/monday-client");
-const { syncMissingDataFromSystems } = require("../sync-missing-data");
+const { findSystemsWithMissingData } = require("../../tools/validate-required-fields");
 const mondayConfig = require("../../config/monday-boards");
 const { getCoverageInfo } = require("../../config/remote-coverage");
 
@@ -59,20 +59,41 @@ const update_rtt_board = async (cap_datetime) => {
         `Done syncing RTT Feed to Monday (${topicsResult.success} success, ${topicsResult.errors} errors)`
       );
 
-      // 2. NEW_ADDITIONS group
-      console.log(
-        `\nInserting ${added_rtt.length} systems to NEW_ADDITIONS group...`
-      );
-      const newAdditionsResult = await insertRttSystems(
-        added_rtt,
-        cap_datetime,
-        mondayConfig.RTT_FEED.groups.NEW_ADDITIONS
-      );
-      console.log(
-        `Done syncing New Additions (${newAdditionsResult.success} success, ${newAdditionsResult.errors} errors)`
+      // Partition systems based on data completeness
+      const systemsWithMissingData = findSystemsWithMissingData(added_rtt);
+      const missingDataDescriptions = new Set(
+        systemsWithMissingData.map((item) =>
+          String(item.system.Description ?? item.system.description).trim()
+        )
       );
 
-      // Send Teams cards for qualifying systems based on RemoteCoverage
+      const completeDataSystems = added_rtt.filter((system) => {
+        const desc = String(system.Description ?? system.description).trim();
+        return !missingDataDescriptions.has(desc);
+      });
+
+      const missingDataSystems = systemsWithMissingData.map((item) => item.system);
+
+      console.log(`\nPartitioned ${added_rtt.length} new systems:`);
+      console.log(`  - ${completeDataSystems.length} with complete data`);
+      console.log(`  - ${missingDataSystems.length} with missing data`);
+
+      // 2. NEW_ADDITIONS group - only systems with complete data
+      if (completeDataSystems.length > 0) {
+        console.log(
+          `\nInserting ${completeDataSystems.length} complete systems to NEW_ADDITIONS group...`
+        );
+        const newAdditionsResult = await insertRttSystems(
+          completeDataSystems,
+          cap_datetime,
+          mondayConfig.RTT_FEED.groups.NEW_ADDITIONS
+        );
+        console.log(
+          `Done syncing New Additions (${newAdditionsResult.success} success, ${newAdditionsResult.errors} errors)`
+        );
+      }
+
+      // Send Teams cards for ALL new systems based on RemoteCoverage
       console.log(`\nSending Teams notifications for qualifying systems...`);
       let teamsCardsSent = 0;
       for (const system of added_rtt) {
@@ -89,17 +110,20 @@ const update_rtt_board = async (cap_datetime) => {
       }
       console.log(`Sent ${teamsCardsSent} Teams notifications`);
 
-      // 3. MISSING_DATA group
-      console.log(
-        `\nChecking ${added_rtt.length} new systems for missing required data...`
-      );
-      const missingDataResult = await syncMissingDataFromSystems(added_rtt, cap_datetime, {
-        skipDeltaCheck: true,
-        verbose: true
-      });
-      console.log(
-        `Done syncing Missing Data (${missingDataResult.synced} synced, ${missingDataResult.errors} errors)`
-      );
+      // 3. MISSING_DATA group - only systems missing required fields
+      if (missingDataSystems.length > 0) {
+        console.log(
+          `\nInserting ${missingDataSystems.length} systems with missing data to MISSING_DATA group...`
+        );
+        const missingDataResult = await insertRttSystems(
+          missingDataSystems,
+          cap_datetime,
+          mondayConfig.RTT_FEED.groups.MISSING_DATA
+        );
+        console.log(
+          `Done syncing Missing Data (${missingDataResult.success} success, ${missingDataResult.errors} errors)`
+        );
+      }
     }
 
     // 4. Sync removed systems to REMOVED group
