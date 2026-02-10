@@ -5,6 +5,7 @@ const interactive_board_info = require("./interactive-board-info");
 const update_rtt_board = require("./rtt_board/update-rtt-board");
 const group_by_coverage = require("./group-by-coverage");
 const sync_missing_data = require("./sync-missing-data");
+const inspect_missing_data_board = require("./inspect-missing-data-board");
 const process_new_additions = require("./process-new-additions");
 const new_avconn_tickets = require("./new-avconn-tickets");
 
@@ -16,6 +17,7 @@ module.exports = {
   update_rtt_board,
   group_by_coverage,
   sync_missing_data,
+  inspect_missing_data_board,
   process_new_additions,
   new_avconn_tickets
 };
