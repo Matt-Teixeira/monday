@@ -4,6 +4,62 @@ const { createClient } = require("./monday-client");
 const monday = createClient();
 
 /**
+ * Fetch remaining items using cursor-based pagination
+ *
+ * @param {string} cursor - The cursor from the previous items_page response
+ * @returns {Promise<Array>} All remaining items across subsequent pages
+ */
+async function fetchRemainingItems(cursor) {
+  const allItems = [];
+  let nextCursor = cursor;
+
+  const query = `
+    query GetNextItems($cursor: String!) {
+      next_items_page(limit: 500, cursor: $cursor) {
+        cursor
+        items {
+          id
+          name
+          group {
+            id
+            title
+          }
+          column_values {
+            id
+            text
+            type
+            value
+          }
+        }
+      }
+    }
+  `;
+
+  while (nextCursor) {
+    const res = await monday.post("", {
+      query,
+      variables: { cursor: nextCursor }
+    });
+
+    if (res.data.errors) {
+      console.error(
+        "GraphQL errors (pagination):",
+        JSON.stringify(res.data.errors, null, 2)
+      );
+      throw new Error("GraphQL error from monday.com during pagination");
+    }
+
+    const page = res.data.data?.next_items_page;
+    if (!page) break;
+
+    allItems.push(...(page.items || []));
+    nextCursor = page.cursor;
+  }
+
+  return allItems;
+}
+
+/**
  * Get all items from a Monday.com board, optionally filtered by group
  *
  * @param {string} boardId - The Monday.com board ID
@@ -64,8 +120,17 @@ async function getMondayBoardItems(boardId, groupId = null) {
       }
 
       const board = boards[0];
-      // Collect items from all requested groups
+      // Collect items from all requested groups (first page)
       const items = board.groups?.flatMap((g) => g.items_page?.items || []) || [];
+
+      // Paginate remaining items for each group
+      for (const group of board.groups || []) {
+        const cursor = group.items_page?.cursor;
+        if (cursor) {
+          const remaining = await fetchRemainingItems(cursor);
+          items.push(...remaining);
+        }
+      }
 
       return {
         board,
@@ -130,6 +195,13 @@ async function getMondayBoardItems(boardId, groupId = null) {
 
     const board = boards[0];
     const items = board.items_page?.items || [];
+
+    // Paginate remaining items
+    const cursor = board.items_page?.cursor;
+    if (cursor) {
+      const remaining = await fetchRemainingItems(cursor);
+      items.push(...remaining);
+    }
 
     return {
       board,
