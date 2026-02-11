@@ -8,6 +8,7 @@ const sync_missing_data = require("./sync-missing-data");
 const inspect_missing_data_board = require("./inspect-missing-data-board");
 const process_new_additions = require("./process-new-additions");
 const new_avconn_tickets = require("./new-avconn-tickets");
+const rtt_feed_all = require("./rtt-feed-all");
 
 module.exports = {
   inspect_board,
@@ -19,5 +20,6 @@ module.exports = {
   sync_missing_data,
   inspect_missing_data_board,
   process_new_additions,
-  new_avconn_tickets
+  new_avconn_tickets,
+  rtt_feed_all
 };

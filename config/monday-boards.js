@@ -103,6 +103,55 @@ module.exports = {
   },
 
   /**
+   * RTT Feed All Board Configuration
+   */
+  RTT_FEED_ALL: {
+    boardId: process.env.MONDAY_BOARD_ID_RTT_FEED_ALL,
+    displayName: "RTT Feed All",
+
+    groups: {
+      TOPICS: 'topics',
+      NEW_ADDITIONS: 'group_mkzb5ahp',
+      MISSING_DATA: 'group_mkzsx8tb',
+      REMOVED: 'group_mkzbkhkt',
+      WORKFLOW_PROCESSED: 'group_mkzvcfxp'
+    },
+
+    columns: {
+      CUSTOMER_ID: 'text_mkyfbpee',
+      SERVICE_CONTRACT_ID: 'text_mkyfyhr0',
+      SERIAL_NBR: 'text_mkyfsnjp',
+      REMOTE_COVERAGE: 'text_mkzdqcx3',
+      SUB_GROUP: 'text_mkzt9pcm',
+      CUSTOMER_NAME: 'text_mkyf9nmy',
+      CUSTOMER_CONTRACT_CUSTOMER_NAME: 'text_mkyfzd0g',
+      SERVICE_CONTRACT_CUSTOMER_NAME: 'text_mkyfgfhd',
+      STATUS: 'text_mkyfdta3',
+      ROOM: 'text_mkyf4nqv',
+      SOFTWARE_RELEASE: 'text_mkyf6y7e',
+      SYSTEM_IP_ADDRESS: 'text_mkyftz9a',
+      MODALITY: 'text_mkyfk8xm',
+      MODEL_DESCRIPTION: 'text_mkyfnce5',
+      LOCATION_NAME: 'text_mkyfw4xn',
+      ADDRESS_LINE1: 'text_mkyfzn5b',
+      ADDRESS_LINE2: 'text_mkyf6fmd',
+      CITY: 'text_mkyfm6yt',
+      STATE: 'text_mkyfk2we',
+      POSTAL_CODE: 'text_mkyfp1vm',
+      MODEL: 'text_mkyfek5s',
+      CUSTOMER_UNIQUE_ID: 'text_mkyfc4e9',
+      MANUFACTURER: 'text_mkyf8pat',
+      LOCATION_ID: 'text_mkyf6p0x',
+      SERVICE_CONTRACT_CUSTOMER_ID: 'text_mkyf5ccy',
+      CUSTOMER_CONTRACT_CUSTOMER_ID: 'text_mkyfe84s',
+      SERVICE_CONTRACT_STATUS: 'text_mkyft88f',
+      CUSTOMER_CONTRACT_STATUS: 'text_mkyffwj2',
+      EXPIRATION_DATE: 'text_mkyf5kda',
+      CAPTURE_DATETIME: 'date_mkypgn4f'
+    }
+  },
+
+  /**
    * HHM Customer Workflow Board Configuration
    */
   HHM_CUST_WORKFLOW: {

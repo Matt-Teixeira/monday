@@ -5,7 +5,7 @@ const { capture_datetime } = require("./tools");
 
 // Registry: map CLI name → handler function
 // Each handler receives a context object with shared resources (cap_dt, etc.)
-const registry = {
+const jobs_registry = {
   inspect:                    (ctx) => jobs.inspect_board(),
   inspect_interactive:        (ctx) => jobs.interactive_inspect(),
   board_info_interactive:     (ctx) => jobs.interactive_board_info(),
@@ -16,15 +16,16 @@ const registry = {
   inspect_missing_data_board: (ctx) => jobs.inspect_missing_data_board(),
   process_new_additions:      (ctx) => jobs.process_new_additions(),
   new_avconn_tickets:         (ctx) => jobs.new_avconn_tickets(),
+  rtt_feed_all:               (ctx) => jobs.rtt_feed_all(ctx.cap_dt),
 };
 
 const run_job = async (name) => {
   if (name === "list") {
-    console.log("Available jobs:\n" + Object.keys(registry).map(k => `  - ${k}`).join("\n"));
+    console.log("Available jobs:\n" + Object.keys(jobs_registry).map(k => `  - ${k}`).join("\n"));
     return;
   }
 
-  const handler = registry[name];
+  const handler = jobs_registry[name];
   if (!handler) {
     console.error(`Unknown job: "${name}"`);
     console.error("Run with 'list' to see available jobs.");

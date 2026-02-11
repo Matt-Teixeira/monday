@@ -5,7 +5,7 @@ const mondayConfig = require("../config/monday-boards");
 
 const monday = createClient();
 
-async function inspect_board(boardId = process.env.MONDAY_BOARD_TICKETS) {
+async function inspect_board(boardId = process.env.MONDAY_BOARD_ID_RTT_FEED_ALL) {
   const query = `
     query GetBoardInfo($boardId: [ID!]!) {
       boards(ids: $boardId) {
