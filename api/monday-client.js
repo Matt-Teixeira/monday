@@ -161,10 +161,54 @@ async function moveItemToGroup(itemId, groupId) {
   return response.data.data.move_item_to_group;
 }
 
+/**
+ * Update column values on an existing Monday.com item
+ *
+ * @param {Object} options - Update options
+ * @param {string} options.boardId - Board ID
+ * @param {string} options.itemId - Item ID to update
+ * @param {string} options.columnValues - JSON string of column values to update
+ * @returns {Promise<{id: string}>} Updated item
+ */
+async function changeColumnValues({ boardId, itemId, columnValues }) {
+  const client = createClient();
+
+  const query = `
+    mutation ChangeColumnValues(
+      $boardId: ID!,
+      $itemId: ID!,
+      $columnValues: JSON!
+    ) {
+      change_multiple_column_values(
+        board_id: $boardId,
+        item_id: $itemId,
+        column_values: $columnValues
+      ) {
+        id
+      }
+    }
+  `;
+
+  const variables = {
+    boardId,
+    itemId,
+    columnValues
+  };
+
+  const response = await client.post("", { query, variables });
+
+  if (response.data.errors) {
+    throw new Error(JSON.stringify(response.data.errors, null, 2));
+  }
+
+  return response.data.data.change_multiple_column_values;
+}
+
 module.exports = {
   createClient,
   createItem,
   createRttItem,
   insertRttSystems,
-  moveItemToGroup
+  moveItemToGroup,
+  changeColumnValues
 };

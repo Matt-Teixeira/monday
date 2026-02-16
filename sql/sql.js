@@ -19,5 +19,8 @@ module.exports = {
   },
   insert_rtt_feed_rmv: {
     systems: sql("queries/insert-acumatica_rtt_feed_rmv.sql")
+  },
+  get_he_level_all: {
+    systems: sql("queries/get-he-level-all.sql")
   }
 };

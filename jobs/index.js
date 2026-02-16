@@ -4,11 +4,12 @@ const interactive_inspect = require("./interactive-inspect");
 const interactive_board_info = require("./interactive-board-info");
 const update_rtt_board = require("./rtt_board/update-rtt-board");
 const group_by_coverage = require("./group-by-coverage");
-const sync_missing_data = require("./sync-missing-data");
+const { syncMissingDataToMonday: sync_missing_data } = require("./sync-missing-data");
 const inspect_missing_data_board = require("./inspect-missing-data-board");
 const process_new_additions = require("./process-new-additions");
 const new_avconn_tickets = require("./new-avconn-tickets");
 const rtt_feed_all = require("./rtt-feed-all");
+const update_mmb_he_data = require("./update-mmb-he-data");
 
 module.exports = {
   inspect_board,
@@ -21,5 +22,6 @@ module.exports = {
   inspect_missing_data_board,
   process_new_additions,
   new_avconn_tickets,
-  rtt_feed_all
+  rtt_feed_all,
+  update_mmb_he_data
 };

@@ -3,7 +3,8 @@ const {
   get_acumatica_rtt_feed,
   insert_rtt_feed,
   insert_rtt_feed_rmv,
-  get_acumatica_rtt_feed_rmv
+  get_acumatica_rtt_feed_rmv,
+  get_he_level_all
 } = require("./sql");
 
 const get_all_acumatica_rtt_feed = async () => {
@@ -62,10 +63,19 @@ const insertNewRttSystem = async (system, captureDatetime) => {
   return insert_db_rtt(values);
 };
 
+const get_all_he_level = async () => {
+  try {
+    return db.any(get_he_level_all.systems);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 module.exports = {
   get_all_acumatica_rtt_feed,
   insert_db_rtt,
   insert_db_rtt_rmv,
   get_all_acumatica_rtt_feed_rmv,
-  insertNewRttSystem
+  insertNewRttSystem,
+  get_all_he_level
 };
