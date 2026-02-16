@@ -209,8 +209,59 @@ module.exports = {
   MMB_CUST_WORKFLOW: {
     boardId: process.env.MONDAY_BOARD_MMB_CUST_WORKFLOW,
     displayName: "MMB Customer Workflow",
-    groups: {},
-    columns: {}
+
+    groups: {
+      PLANNING_REVIEW: 'topics',
+      IN_TRANSIT: 'group_mkxj31nc',
+      DEPLOYMENT: 'group_mkxj1bmn',
+      ACTIVE_MAINTENANCE: 'group_mkxjdb09',
+      CONTRACT_END: 'group_mkyadk7j'
+    },
+
+    columns: {
+      // Status columns
+      BUSINESS_ADMIN_LOGISTICS: 'status',
+      REMOTE_ADMIN: 'color_mm0aje8s',
+      DEV_OPS: 'color_mm0am04z',
+      NETWORK_ADMIN: 'color_mm0axxky',
+
+      // Text columns
+      CUSTOMER_NAME: 'text_mkxjfnc4',
+      SUB_GROUP: 'text_mkxjrtzm',
+      SITE_NAME: 'text_mkxjn0xh',
+      BOX_ASSIGNED: 'text_mkxjhw6v',
+      MAGNET_TYPE: 'text_mkxjzsj3',
+      MODALITY: 'text_mm02w39g',
+      MANUFACTURER: 'text_mkyfmb6e',
+      MODEL: 'text_mkyfvyhj',
+      SERIAL: 'text_mkyfthry',
+      SVC: 'text_mkxjhc6f',
+      COMPRESSOR_STATUS: 'text_mm0mv1b3',
+
+      // Long text columns
+      SHIPPING_INFO: 'long_text_mkxjc4hr',
+      NOTES: 'long_text_mkxj53gr',
+      SITE_ADDRESS: 'long_text_mkxq9d75',
+
+      // Board relation
+      REMOTE_BOX: 'board_relation_mkyasw0t',
+
+      // Mirror columns
+      MIRROR_BOX: 'lookup_mkyhd2n1',
+      SSH_IP: 'lookup_mkyaadp1',
+      MAC: 'lookup_mkyph4s5',
+
+      // People
+      PERSON: 'person',
+
+      // Date
+      DATE: 'date4',
+      CAPTURE_DATETIME: 'date_mm0myzcp',
+
+      // Numbers
+      HE_PRESSURE: 'numeric_mm0m2pxd',
+      HE_LEVEL: 'numeric_mm0my38c'
+    }
   },
 
   /**
