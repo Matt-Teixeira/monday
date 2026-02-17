@@ -25,5 +25,8 @@ module.exports = {
   },
   get_he_pressure_all: {
     systems: sql("queries/get-he-pressure-all.sql")
+  },
+  get_comp_status: {
+    systems: sql("queries/get-comp_status.sql")
   }
 };
