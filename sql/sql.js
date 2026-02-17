@@ -22,5 +22,8 @@ module.exports = {
   },
   get_he_level_all: {
     systems: sql("queries/get-he-level-all.sql")
+  },
+  get_he_pressure_all: {
+    systems: sql("queries/get-he-pressure-all.sql")
   }
 };
