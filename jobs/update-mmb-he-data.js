@@ -85,7 +85,7 @@ const update_mmb_he_data = async () => {
       }
 
       if (data.compVibStatus != null) {
-        cols[COMPRESSOR_STATUS] = String(data.compVibStatus);
+        cols[COMPRESSOR_STATUS] = data.compVibStatus ? "on" : "off";
       }
 
       if (data.magCaptureDateTime) {
