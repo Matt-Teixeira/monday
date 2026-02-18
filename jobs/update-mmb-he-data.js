@@ -95,8 +95,11 @@ const update_mmb_he_data = async () => {
         cols[MAG_CAPTURE_DATETIME] = { date: datePart, time: timePart };
       }
 
-      if (data.eduDatetime != null) {
-        cols[EDU_CAPTURE_DATETIME] = String(data.eduDatetime);
+      if (data.eduDatetime) {
+        const eduDt = new Date(data.eduDatetime);
+        const eduDatePart = eduDt.toISOString().split("T")[0];
+        const eduTimePart = eduDt.toTimeString().split(" ")[0];
+        cols[EDU_CAPTURE_DATETIME] = { date: eduDatePart, time: eduTimePart };
       }
 
       if (Object.keys(cols).length === 0) {

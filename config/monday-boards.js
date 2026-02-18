@@ -259,7 +259,7 @@ module.exports = {
       MAG_CAPTURE_DATETIME: 'date_mm0myzcp',
 
       // EDU
-      EDU_CAPTURE_DATETIME: 'text_mm0nrf3s',
+      EDU_CAPTURE_DATETIME: 'date_mm0pg81f',
 
       // Numbers
       HE_PRESSURE: 'numeric_mm0m2pxd',
