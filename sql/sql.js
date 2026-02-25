@@ -28,5 +28,8 @@ module.exports = {
   },
   get_comp_status: {
     systems: sql("queries/get-comp_status.sql")
+  },
+  update_rtt_feed: {
+    systems: sql("queries/update-acumatica_rtt_feed.sql")
   }
 };

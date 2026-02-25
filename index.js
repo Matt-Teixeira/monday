@@ -17,7 +17,8 @@ const jobs_registry = {
   process_new_additions:      (ctx) => jobs.process_new_additions(),
   new_avconn_tickets:         (ctx) => jobs.new_avconn_tickets(),
   rtt_feed_all:               (ctx) => jobs.rtt_feed_all(ctx.cap_dt),
-  update_mmb_he_data:         (ctx) => jobs.update_mmb_he_data()
+  update_mmb_he_data:         (ctx) => jobs.update_mmb_he_data(),
+  delta_update_rtt_feed:      (ctx) => jobs.delta_update_rtt_feed(ctx.cap_dt)
 };
 
 const run_job = async (name) => {

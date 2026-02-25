@@ -6,7 +6,8 @@ const {
   get_acumatica_rtt_feed_rmv,
   get_he_level_all,
   get_he_pressure_all,
-  get_comp_status
+  get_comp_status,
+  update_rtt_feed
 } = require("./sql");
 
 const get_all_acumatica_rtt_feed = async () => {
@@ -65,6 +66,45 @@ const insertNewRttSystem = async (system, captureDatetime) => {
   return insert_db_rtt(values);
 };
 
+// Explicit field order matching the UPDATE query ($2-$73)
+const UPDATE_FIELD_ORDER = [
+  'CustomerID', 'LocationID', 'ServiceContractID', 'CustomerContractID',
+  'EquipmentDescription', 'SerialNbr', 'Status', 'Room', 'SoftwareRelease',
+  'SystemIPAddress', 'Modality', 'ModelDescription', 'CustomerName',
+  'LocationName', 'AddressLine1', 'AddressLine2', 'City', 'State',
+  'PostalCode', 'Model', 'CustomerUniqueID', 'Manufacturer',
+  'LastPMCompleted', 'PMFrequencyinmonths', 'LegacyEquipmentID',
+  'ShowonRemoteServicesWebsite', 'ServiceContractCustomerID',
+  'ServiceContractCustomerName', 'CustomerContractCustomerID',
+  'CustomerContractCustomerName', 'ServiceContractStatus',
+  'CustomerContractStatus', 'ServiceContractLocationID',
+  'ServiceContractLocationName', 'CustomerContractLocationID',
+  'CustomerContractLocationName', 'ExpirationDate', 'MMBControlNumber',
+  'IGAHCreated', 'IGAHCreatedBy', 'IGAHUpdatedBy', 'IGAHUpdated',
+  'IGAHActive', 'RemoteConnectivityImplemeted', 'PrimaryEngineer',
+  'PrimaryEngineer_2', 'EmployeeName', 'SecondaryEngineer',
+  'SecondaryEngineer_2', 'EmployeeName_2', 'Workgroup', 'BAWorkgroup',
+  'RemoteCoverage', 'SCDesc', 'HostImplementationDate', 'RTTNotes',
+  'SiteID', 'SiteID_2', 'RemoteConnectivityStatus', 'AccountID',
+  'ManufacturerID', 'Model_2', 'AddressID', 'ManufacturerID_2',
+  'EntityType', 'ContractID', 'ServiceContractID_2', 'EquipmentID',
+  'AccountID_2', 'CustomerID_2', 'EquipmentNbr', 'Login'
+];
+
+const updateRttSystem = async (system, captureDatetime) => {
+  const description = String(system.Description ?? "").trim();
+  const values = [description]; // $1 = WHERE key
+
+  for (const field of UPDATE_FIELD_ORDER) {
+    const val = system[field];
+    values.push(val === null || val === undefined ? null : String(val).trim());
+  }
+
+  values.push(captureDatetime); // $74 = capture_datetime
+
+  return db.none(update_rtt_feed.systems, values);
+};
+
 const get_all_he_level = async () => {
   try {
     return db.any(get_he_level_all.systems);
@@ -95,6 +135,7 @@ module.exports = {
   insert_db_rtt_rmv,
   get_all_acumatica_rtt_feed_rmv,
   insertNewRttSystem,
+  updateRttSystem,
   get_all_he_level,
   get_all_he_pressure,
   get_all_comp_status
