@@ -19,7 +19,7 @@ function format_for_mmb_workflow(system) {
 
   return {
     name: system.Description ?? system.description,
-    status: { label: "NEW" },
+    status: { label: "New" },
     text_mkxjfnc4: system.CustomerName,
     text_mkxjn0xh: system.CustomerName,
     text_mkxjzsj3: "MRI",
