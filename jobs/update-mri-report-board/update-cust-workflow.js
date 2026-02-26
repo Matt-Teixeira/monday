@@ -24,7 +24,8 @@ function format_for_mmb_workflow(system) {
     text_mkxjn0xh: system.CustomerName,
     text_mkxjzsj3: "MRI",
     text_mkyfmb6e: system.Manufacturer,
-    text_mkyfthry: system.CustomerUniqueID,
+    text_mkyfvyhj: [system.Model, system.ModelDescription].filter(Boolean).join(" - "),
+    text_mkyfthry: system.SerialNbr,
     text_mkxjrtzm: system.SubGroup || "",
     long_text_mkxq9d75: { text: siteAddress }
   };

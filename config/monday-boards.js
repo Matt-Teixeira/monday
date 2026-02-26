@@ -160,6 +160,8 @@ module.exports = {
 
     groups: {
       ACTIVE_MAINTENANCE: 'topics',
+      PLANNING_REVIEW: 'group_mm00bycp',
+      DEPLOYMENT: 'group_mm00c6j3',
       ADD_TO_ACTIVE: 'group_mm0y6vwr'
     },
 

@@ -1,8 +1,10 @@
 const { createItem } = require("../../api/monday-client");
 const { buildRTTColumnValues } = require("../../tools/monday-column-mapper");
 
-const BOARD_ID = process.env.MONDAY_BOARD_HHM_CUST_WORKFLOW;
-const GROUP_ID = "topics";
+const mondayConfig = require("../../config/monday-boards");
+
+const BOARD_ID = mondayConfig.HHM_CUST_WORKFLOW.boardId;
+const GROUP_ID = mondayConfig.HHM_CUST_WORKFLOW.groups.PLANNING_REVIEW;
 
 // Column IDs that exist on the current HHM-Cust-Workflow board
 const HHM_VALID_COLUMNS = new Set([

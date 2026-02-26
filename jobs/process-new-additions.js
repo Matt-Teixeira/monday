@@ -119,7 +119,7 @@ const process_new_additions = async () => {
 
     if (itemsWithSubGroup.length === 0) {
       console.log("No items to process. Exiting.");
-      return { processed: 0, mmb: 0, hhm: 0, moved: 0, skipped: 0, errors: 0 };
+      return { processed: 0, mmb: 0, hhm: 0, moved: 0, errors: 0 };
     }
 
     const WORKFLOW_PROCESSED_GROUP = mondayConfig.RTT_FEED.groups.WORKFLOW_PROCESSED;
@@ -127,7 +127,6 @@ const process_new_additions = async () => {
     let mmbCount = 0;
     let hhmCount = 0;
     let movedCount = 0;
-    let skippedCount = 0;
     let errorCount = 0;
 
     for (const item of itemsWithSubGroup) {
@@ -143,29 +142,23 @@ const process_new_additions = async () => {
       // Convert Monday item to system object for workflow functions
       const system = itemToSystemObject(item);
 
-      // Determine routing - use modality-based fallback if no clear coverage
+      // Route to MMB based on coverage; MRI modality always routes to MMB
+      const modality = getColumnValue(item, MODALITY_COLUMN_ID);
       let routeToMmb = coverageInfo.mmb === true;
+      if (!routeToMmb && modality && modality.toUpperCase() === "MRI") {
+        routeToMmb = true;
+        console.log(`  -> Modality is MRI, routing to MMB`);
+      }
+
+      // Route to HHM based on coverage; default to HHM when coverage is unknown (null)
       let routeToHhm = coverageInfo.hhm === true;
-
-      // Secondary check: If RemoteCoverage doesn't provide routing, use Modality
-      // Always route to HHM for unknown coverage; also route to MMB if MRI
-      if (!routeToMmb && !routeToHhm) {
-        const modality = getColumnValue(item, MODALITY_COLUMN_ID);
-        console.log(`  -> No coverage routing, checking Modality: "${modality}"`);
-
-        // Always send to HHM for unknown/empty RemoteCoverage
+      if (coverageInfo.hhm == null) {
         routeToHhm = true;
-
-        if (modality && modality.toUpperCase() === "MRI") {
-          routeToMmb = true;
-          console.log(`  -> Modality is MRI, routing to both MMB and HHM`);
-        } else {
-          console.log(`  -> Routing to HHM (unknown coverage fallback)`);
-        }
+        console.log(`  -> Unknown/empty HHM coverage, defaulting to HHM`);
       }
 
       try {
-        // Route to MMB if coverage indicates mmb: true
+        // Route to MMB if coverage or MRI modality
         if (routeToMmb) {
           console.log(`  -> Inserting to MMB-Cust-Workflow...`);
           const formatted = format_for_mmb_workflow(system);
@@ -199,7 +192,6 @@ const process_new_additions = async () => {
     console.log(`Routed to MMB: ${mmbCount}`);
     console.log(`Routed to HHM: ${hhmCount}`);
     console.log(`Moved to Workflow-Processed: ${movedCount}`);
-    console.log(`Skipped (no matching coverage): ${skippedCount}`);
     console.log(`Errors: ${errorCount}`);
 
     return {
@@ -207,7 +199,6 @@ const process_new_additions = async () => {
       mmb: mmbCount,
       hhm: hhmCount,
       moved: movedCount,
-      skipped: skippedCount,
       errors: errorCount
     };
   } catch (error) {
