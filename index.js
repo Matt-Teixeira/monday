@@ -11,12 +11,12 @@ const jobs_registry = {
   inspect_interactive:        (ctx) => jobs.interactive_inspect(),
   board_info_interactive:     (ctx) => jobs.interactive_board_info(),
   board_info:                 (ctx) => jobs.get_board_info().then(bi => console.log(bi.items_page.items)),
-  equipment_rtt:              (ctx) => jobs.update_rtt_board(ctx.cap_dt),
   group_coverage:             (ctx) => jobs.group_by_coverage(),
   sync_missing_data:          (ctx) => jobs.sync_missing_data(),
   inspect_missing_data_board: (ctx) => jobs.inspect_missing_data_board(),
-  process_new_additions:      (ctx) => jobs.process_new_additions(),
   new_avconn_tickets:         (ctx) => jobs.new_avconn_tickets(),
+  equipment_rtt:              (ctx) => jobs.update_rtt_board(ctx.cap_dt),
+  process_new_additions:      (ctx) => jobs.process_new_additions(),
   rtt_feed_all:               (ctx) => jobs.rtt_feed_all(ctx.cap_dt),
   update_mmb_he_data:         (ctx) => jobs.update_mmb_he_data(),
   delta_update_rtt_feed:      (ctx) => jobs.delta_update_rtt_feed(ctx.cap_dt),
@@ -59,5 +59,10 @@ const on_boot = async () => {
     console.log(`Total runtime: ${ms.toFixed(2)} ms (${(ms / 1000).toFixed(2)} s)`);
   }
 };
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled rejection:", err);
+  process.exit(1);
+});
 
 on_boot();

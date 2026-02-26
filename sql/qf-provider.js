@@ -15,7 +15,8 @@ const get_all_acumatica_rtt_feed = async () => {
   try {
     return db.any(get_acumatica_rtt_feed.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -23,7 +24,8 @@ const insert_db_rtt = async (args) => {
   try {
     return db.any(insert_rtt_feed.systems, args);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -31,7 +33,8 @@ const get_all_acumatica_rtt_feed_rmv = async () => {
   try {
     return db.any(get_acumatica_rtt_feed_rmv.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -39,30 +42,51 @@ const insert_db_rtt_rmv = async (args) => {
   try {
     return db.any(insert_rtt_feed_rmv.systems, args);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
+// Explicit field order matching the INSERT query ($1-$73, $74=capture_datetime)
+const INSERT_FIELD_ORDER = [
+  'Description', 'CustomerID', 'LocationID', 'ServiceContractID',
+  'CustomerContractID', 'EquipmentDescription', 'SerialNbr', 'Status',
+  'Room', 'SoftwareRelease', 'SystemIPAddress', 'Modality',
+  'ModelDescription', 'CustomerName', 'LocationName', 'AddressLine1',
+  'AddressLine2', 'City', 'State', 'PostalCode', 'Model',
+  'CustomerUniqueID', 'Manufacturer', 'LastPMCompleted',
+  'PMFrequencyinmonths', 'LegacyEquipmentID', 'ShowonRemoteServicesWebsite',
+  'ServiceContractCustomerID', 'ServiceContractCustomerName',
+  'CustomerContractCustomerID', 'CustomerContractCustomerName',
+  'ServiceContractStatus', 'CustomerContractStatus',
+  'ServiceContractLocationID', 'ServiceContractLocationName',
+  'CustomerContractLocationID', 'CustomerContractLocationName',
+  'ExpirationDate', 'MMBControlNumber', 'IGAHCreated', 'IGAHCreatedBy',
+  'IGAHUpdatedBy', 'IGAHUpdated', 'IGAHActive',
+  'RemoteConnectivityImplemeted', 'PrimaryEngineer', 'PrimaryEngineer_2',
+  'EmployeeName', 'SecondaryEngineer', 'SecondaryEngineer_2',
+  'EmployeeName_2', 'Workgroup', 'BAWorkgroup', 'RemoteCoverage',
+  'SCDesc', 'HostImplementationDate', 'RTTNotes', 'SiteID', 'SiteID_2',
+  'RemoteConnectivityStatus', 'AccountID', 'ManufacturerID', 'Model_2',
+  'AddressID', 'ManufacturerID_2', 'EntityType', 'ContractID',
+  'ServiceContractID_2', 'EquipmentID', 'AccountID_2', 'CustomerID_2',
+  'EquipmentNbr', 'Login'
+];
+
 /**
  * Convert a system object to values array and insert to DB
- * Handles null/undefined normalization for all properties
+ * Uses explicit field order to match SQL INSERT column positions
  *
  * @param {Object} system - RTT system object from API
  * @param {string} captureDatetime - ISO datetime string for capture_datetime
  * @returns {Promise<void>}
  */
 const insertNewRttSystem = async (system, captureDatetime) => {
-  const systemWithCapture = { ...system, capture_datetime: captureDatetime };
-  const values = [];
-
-  for (const prop in systemWithCapture) {
-    const val = systemWithCapture[prop];
-    if (val === null || val === undefined) {
-      values.push(null);
-    } else {
-      values.push(String(val).trim());
-    }
-  }
+  const values = INSERT_FIELD_ORDER.map((field) => {
+    const val = system[field];
+    return val == null ? null : String(val).trim();
+  });
+  values.push(captureDatetime); // $74 = capture_datetime
 
   return insert_db_rtt(values);
 };
@@ -110,7 +134,8 @@ const get_all_he_level = async () => {
   try {
     return db.any(get_he_level_all.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -118,7 +143,8 @@ const get_all_he_pressure = async () => {
   try {
     return db.any(get_he_pressure_all.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -126,7 +152,8 @@ const get_all_comp_status = async () => {
   try {
     return db.any(get_comp_status.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 
@@ -134,7 +161,8 @@ const get_all_hhm_status = async () => {
   try {
     return db.any(get_hhm_status.systems);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    throw error;
   }
 };
 

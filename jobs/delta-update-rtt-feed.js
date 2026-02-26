@@ -94,7 +94,7 @@ const delta_update_rtt_feed = async (cap_datetime) => {
     let hasChanges = false;
     const changedFields = []; // { colId, name, before, after }
     for (const [colId, expectedVal] of Object.entries(expected)) {
-      if (colId === "date_mkypgn4f") continue;
+      if (colId === mondayConfig.RTT_FEED.columns.CAPTURE_DATETIME) continue;
       if (!validColumnIds.has(colId)) continue;
 
       const currentVal = current[colId] ?? "";
@@ -198,7 +198,7 @@ const delta_update_rtt_feed = async (cap_datetime) => {
     let hasChanges = false;
     const changedFields = [];
     for (const [colId, expectedVal] of Object.entries(expected)) {
-      if (colId === "date_mkypgn4f") continue;
+      if (colId === mondayConfig.RTT_FEED.columns.CAPTURE_DATETIME) continue;
       if (!validColumnIds.has(colId)) continue;
 
       const currentVal = current[colId] ?? "";

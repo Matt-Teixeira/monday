@@ -33,17 +33,17 @@ const update_rtt_board = async (cap_datetime) => {
     (item) => !dbRemovedDescriptions.has(item.description.trim())
   );
 
-  // Track removed systems in DB
-  for (const system of add_to_rmv) {
-    await insert_db_rtt_rmv([system.description, system.capture_datetime]);
-  }
-
-  // Insert new systems to DB
-  for (const system of added_rtt) {
-    await insertNewRttSystem(system, cap_datetime.toISO());
-  }
-
   try {
+    // Track removed systems in DB
+    for (const system of add_to_rmv) {
+      await insert_db_rtt_rmv([system.description, system.capture_datetime]);
+    }
+
+    // Insert new systems to DB
+    for (const system of added_rtt) {
+      await insertNewRttSystem(system, cap_datetime.toISO());
+    }
+
     // Sync new systems to Monday boards
     if (added_rtt.length) {
       // 1. TOPICS group
@@ -100,11 +100,11 @@ const update_rtt_board = async (cap_datetime) => {
         const coverageInfo = getCoverageInfo(system.RemoteCoverage);
 
         if (coverageInfo.mmb === true) {
-          await send_teams_card(system, "MMB");
+          // await send_teams_card(system, "MMB");
           teamsCardsSent++;
         }
         if (coverageInfo.hhm === true) {
-          await send_teams_card(system, "HHM");
+          // await send_teams_card(system, "HHM");
           teamsCardsSent++;
         }
       }
@@ -142,7 +142,7 @@ const update_rtt_board = async (cap_datetime) => {
     }
   } catch (error) {
     console.error("Error in update_rtt_board:", error);
-    console.log(error);
+    throw error;
   }
 };
 
