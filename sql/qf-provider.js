@@ -7,7 +7,8 @@ const {
   get_he_level_all,
   get_he_pressure_all,
   get_comp_status,
-  update_rtt_feed
+  update_rtt_feed,
+  get_hhm_status
 } = require("./sql");
 
 const get_all_acumatica_rtt_feed = async () => {
@@ -129,6 +130,14 @@ const get_all_comp_status = async () => {
   }
 };
 
+const get_all_hhm_status = async () => {
+  try {
+    return db.any(get_hhm_status.systems);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 module.exports = {
   get_all_acumatica_rtt_feed,
   insert_db_rtt,
@@ -138,5 +147,6 @@ module.exports = {
   updateRttSystem,
   get_all_he_level,
   get_all_he_pressure,
-  get_all_comp_status
+  get_all_comp_status,
+  get_all_hhm_status
 };

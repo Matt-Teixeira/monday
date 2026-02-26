@@ -31,5 +31,8 @@ module.exports = {
   },
   update_rtt_feed: {
     systems: sql("queries/update-acumatica_rtt_feed.sql")
+  },
+  get_hhm_status: {
+    systems: sql("queries/get-hhm-status.sql")
   }
 };

@@ -159,7 +159,8 @@ module.exports = {
     displayName: "HHM Customer Workflow",
 
     groups: {
-      NEW_HHM_SYSTEMS: 'topics'
+      ACTIVE_MAINTENANCE: 'topics',
+      ADD_TO_ACTIVE: 'group_mm0y6vwr'
     },
 
     columns: {
@@ -198,8 +199,13 @@ module.exports = {
       NOTES: 'text_mm0dcd13',
       REMOTE_SITE_DATE: 'text_mm0dsf42',
 
-      // Date column
-      CAPTURE_DATETIME: 'date_mkypgn4f'
+      // Date columns
+      CAPTURE_DATETIME: 'date_mkypgn4f',
+      LAST_LOG_DATE: 'date_mm0ytz39',
+      LAST_CONNECTION_DATE: 'date_mm0y41ct',
+
+      // Connectivity
+      CONNECTIVITY_ERROR: 'text_mm0ykvwr'
     }
   },
 

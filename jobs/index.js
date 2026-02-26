@@ -11,6 +11,7 @@ const new_avconn_tickets = require("./new-avconn-tickets");
 const rtt_feed_all = require("./rtt-feed-all");
 const update_mmb_he_data = require("./update-mmb-he-data");
 const delta_update_rtt_feed = require("./delta-update-rtt-feed");
+const update_hhm_status = require("./update-hhm-status");
 
 module.exports = {
   inspect_board,
@@ -25,5 +26,6 @@ module.exports = {
   new_avconn_tickets,
   rtt_feed_all,
   update_mmb_he_data,
-  delta_update_rtt_feed
+  delta_update_rtt_feed,
+  update_hhm_status
 };
