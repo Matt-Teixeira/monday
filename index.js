@@ -2,6 +2,7 @@
 require("dotenv").config();
 const jobs = require("./jobs");
 const { capture_datetime } = require("./tools");
+const { performance } = require("node:perf_hooks");
 
 // Registry: map CLI name → handler function
 // Each handler receives a context object with shared resources (cap_dt, etc.)
@@ -18,7 +19,8 @@ const jobs_registry = {
   new_avconn_tickets:         (ctx) => jobs.new_avconn_tickets(),
   rtt_feed_all:               (ctx) => jobs.rtt_feed_all(ctx.cap_dt),
   update_mmb_he_data:         (ctx) => jobs.update_mmb_he_data(),
-  delta_update_rtt_feed:      (ctx) => jobs.delta_update_rtt_feed(ctx.cap_dt)
+  delta_update_rtt_feed:      (ctx) => jobs.delta_update_rtt_feed(ctx.cap_dt),
+  update_hhm_status:          (ctx) => jobs.update_hhm_status()
 };
 
 const run_job = async (name) => {
@@ -29,9 +31,7 @@ const run_job = async (name) => {
 
   const handler = jobs_registry[name];
   if (!handler) {
-    console.error(`Unknown job: "${name}"`);
-    console.error("Run with 'list' to see available jobs.");
-    process.exit(1);
+    throw new Error(`Unknown job: "${name}". Run with 'list' to see available jobs.`);
   }
 
   const ctx = { cap_dt: capture_datetime("America/New_York") };
@@ -39,14 +39,25 @@ const run_job = async (name) => {
 };
 
 const on_boot = async () => {
-  const job = process.argv[2];
-  if (!job) {
-    console.error("Usage: node index.js <job_name>");
-    console.error("Run with 'list' to see available jobs.");
+  const start = performance.now();
+
+  try {
+    const job = process.argv[2];
+    if (!job) {
+      throw new Error("Usage: node index.js <job_name>");
+    }
+
+    console.log(job);
+    await run_job(job);
+
+  } catch (err) {
+    console.error(err.message);
     process.exit(1);
+  } finally {
+    const end = performance.now();
+    const ms = end - start;
+    console.log(`Total runtime: ${ms.toFixed(2)} ms (${(ms / 1000).toFixed(2)} s)`);
   }
-  console.log(job);
-  await run_job(job);
 };
 
 on_boot();
