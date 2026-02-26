@@ -1,3 +1,4 @@
+const { DateTime } = require("luxon");
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const { changeColumnValues } = require("../api/monday-client");
 const { get_all_he_level, get_all_he_pressure, get_all_comp_status } = require("../sql/qf-provider");
@@ -89,17 +90,13 @@ const update_mmb_he_data = async () => {
       }
 
       if (data.magCaptureDateTime) {
-        const dt = new Date(data.magCaptureDateTime);
-        const datePart = dt.toISOString().split("T")[0];
-        const timePart = dt.toTimeString().split(" ")[0]; // HH:mm:ss in local time
-        cols[MAG_CAPTURE_DATETIME] = { date: datePart, time: timePart };
+        const dt = DateTime.fromJSDate(new Date(data.magCaptureDateTime), { zone: "America/New_York" });
+        cols[MAG_CAPTURE_DATETIME] = { date: dt.toFormat("yyyy-MM-dd"), time: dt.toFormat("HH:mm:ss") };
       }
 
       if (data.eduDatetime) {
-        const eduDt = new Date(data.eduDatetime);
-        const eduDatePart = eduDt.toISOString().split("T")[0];
-        const eduTimePart = eduDt.toTimeString().split(" ")[0];
-        cols[EDU_CAPTURE_DATETIME] = { date: eduDatePart, time: eduTimePart };
+        const eduDt = DateTime.fromJSDate(new Date(data.eduDatetime), { zone: "America/New_York" });
+        cols[EDU_CAPTURE_DATETIME] = { date: eduDt.toFormat("yyyy-MM-dd"), time: eduDt.toFormat("HH:mm:ss") };
       }
 
       if (Object.keys(cols).length === 0) {

@@ -1,3 +1,4 @@
+const { DateTime } = require("luxon");
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const { changeColumnValues, createItem } = require("../api/monday-client");
 const { get_all_hhm_status } = require("../sql/qf-provider");
@@ -59,17 +60,13 @@ const update_hhm_status = async () => {
       }
 
       if (data.lastLogDate) {
-        const dt = new Date(data.lastLogDate);
-        const datePart = dt.toISOString().split("T")[0];
-        const timePart = dt.toTimeString().split(" ")[0];
-        cols[LAST_LOG_DATE] = { date: datePart, time: timePart };
+        const dt = DateTime.fromJSDate(new Date(data.lastLogDate), { zone: "America/New_York" });
+        cols[LAST_LOG_DATE] = { date: dt.toFormat("yyyy-MM-dd"), time: dt.toFormat("HH:mm:ss") };
       }
 
       if (data.lastConnection) {
-        const dt = new Date(data.lastConnection);
-        const datePart = dt.toISOString().split("T")[0];
-        const timePart = dt.toTimeString().split(" ")[0];
-        cols[LAST_CONNECTION_DATE] = { date: datePart, time: timePart };
+        const dt = DateTime.fromJSDate(new Date(data.lastConnection), { zone: "America/New_York" });
+        cols[LAST_CONNECTION_DATE] = { date: dt.toFormat("yyyy-MM-dd"), time: dt.toFormat("HH:mm:ss") };
       }
 
       if (Object.keys(cols).length === 0) {
