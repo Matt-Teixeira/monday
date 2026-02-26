@@ -28,6 +28,7 @@ async function inspect_board(boardId = process.env.MONDAY_BOARD_ID_RTT_FEED_ALL)
   try {
     const res = await monday.post("", { query, variables });
     console.log(JSON.stringify(res.data, null, 2));
+    return res.data;
   } catch (err) {
     console.error("Error inspecting board:");
     console.error(err.response?.data || err.message);

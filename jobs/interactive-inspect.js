@@ -1,8 +1,12 @@
 // interactive-inspect.js
 require("dotenv").config();
 const readline = require("readline");
+const fs = require("fs");
+const path = require("path");
 const inspect_board = require("./inspect_board");
 const mondayConfig = require("../config/monday-boards");
+
+const OUTPUT_DIR = path.join(__dirname, "..", "data_outputs");
 
 /**
  * Display the menu of available boards
@@ -85,7 +89,17 @@ async function interactiveInspect() {
     console.log("----------------------------------------\n");
 
     try {
-      await inspect_board(selectedBoard.boardId);
+      const boardData = await inspect_board(selectedBoard.boardId);
+
+      if (boardData) {
+        const sanitizedName = selectedBoard.displayName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `${sanitizedName}_inspect_${timestamp}.json`;
+        const filepath = path.join(OUTPUT_DIR, filename);
+
+        fs.writeFileSync(filepath, JSON.stringify(boardData, null, 2));
+        console.log(`\nData saved to: ${filepath}`);
+      }
     } catch (err) {
       console.error(`\nFailed to inspect board: ${err.message}\n`);
     }
