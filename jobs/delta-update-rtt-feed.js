@@ -11,6 +11,13 @@ const columnIdToName = Object.fromEntries(
   Object.entries(mondayConfig.RTT_FEED.columns).map(([name, id]) => [id, name])
 );
 
+// Build set of column IDs to skip during delta comparison and update payloads
+const ignoreColIds = new Set(
+  (mondayConfig.RTT_FEED.deltaIgnoreColumns ?? [])
+    .map(name => mondayConfig.RTT_FEED.columns[name])
+    .filter(Boolean)
+);
+
 const delta_update_rtt_feed = async (cap_datetime) => {
   console.log("\n=== Starting Delta Update RTT Feed ===\n");
 
@@ -90,11 +97,11 @@ const delta_update_rtt_feed = async (cap_datetime) => {
     }
 
     // Compare: check if any mapped column differs
-    // Skip date column and columns that don't exist on the board
+    // Skip ignored columns and columns that don't exist on the board
     let hasChanges = false;
     const changedFields = []; // { colId, name, before, after }
     for (const [colId, expectedVal] of Object.entries(expected)) {
-      if (colId === mondayConfig.RTT_FEED.columns.CAPTURE_DATETIME) continue;
+      if (ignoreColIds.has(colId)) continue;
       if (!validColumnIds.has(colId)) continue;
 
       const currentVal = current[colId] ?? "";
@@ -124,10 +131,10 @@ const delta_update_rtt_feed = async (cap_datetime) => {
       console.log(`        after:  "${field.after}"`);
     }
 
-    // Build update payload with cap_datetime, stripping columns not on the board
+    // Build update payload with cap_datetime, stripping columns not on the board or ignored
     const updateObj = JSON.parse(buildRTTColumnValues(odataSystem, cap_datetime));
     for (const colId of Object.keys(updateObj)) {
-      if (!validColumnIds.has(colId)) delete updateObj[colId];
+      if (!validColumnIds.has(colId) || ignoreColIds.has(colId)) delete updateObj[colId];
     }
     const updateColumnValues = JSON.stringify(updateObj);
 
@@ -198,7 +205,7 @@ const delta_update_rtt_feed = async (cap_datetime) => {
     let hasChanges = false;
     const changedFields = [];
     for (const [colId, expectedVal] of Object.entries(expected)) {
-      if (colId === mondayConfig.RTT_FEED.columns.CAPTURE_DATETIME) continue;
+      if (ignoreColIds.has(colId)) continue;
       if (!validColumnIds.has(colId)) continue;
 
       const currentVal = current[colId] ?? "";
@@ -230,7 +237,7 @@ const delta_update_rtt_feed = async (cap_datetime) => {
 
     const updateObj = JSON.parse(buildRTTColumnValues(odataSystem, cap_datetime));
     for (const colId of Object.keys(updateObj)) {
-      if (!validColumnIds.has(colId)) delete updateObj[colId];
+      if (!validColumnIds.has(colId) || ignoreColIds.has(colId)) delete updateObj[colId];
     }
     const updateColumnValues = JSON.stringify(updateObj);
 

@@ -11,6 +11,14 @@ module.exports = {
     boardId: process.env.MONDAY_BOARD_ID_RTT_FEED,
     displayName: "RTT Feed",
 
+    // Column name keys (from the columns map below) to skip during delta
+    // comparison and exclude from update payloads. Add any column here that
+    // is managed manually in Monday and should never be overwritten by OData sync.
+    deltaIgnoreColumns: [
+      'SUB_GROUP',
+      'CAPTURE_DATETIME'
+    ],
+
     groups: {
       TOPICS: 'topics',
       NEW_ADDITIONS: 'group_mkzb5ahp',
