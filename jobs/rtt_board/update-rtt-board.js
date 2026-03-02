@@ -100,11 +100,11 @@ const update_rtt_board = async (cap_datetime) => {
         const coverageInfo = getCoverageInfo(system.RemoteCoverage);
 
         if (coverageInfo.mmb === true) {
-          // await send_teams_card(system, "MMB");
+          await send_teams_card(system, "MMB");
           teamsCardsSent++;
         }
         if (coverageInfo.hhm === true) {
-          // await send_teams_card(system, "HHM");
+          await send_teams_card(system, "HHM");
           teamsCardsSent++;
         }
       }
