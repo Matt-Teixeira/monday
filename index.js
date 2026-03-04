@@ -68,7 +68,7 @@ const on_boot = async () => {
         await db.none(
           `INSERT INTO stats.job_runs (app_name, job_name, run_datetime, run_time_ms, status, error_message)
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [process.env.APP_NAME, job, run_dt.toISO(), ms, status, error_message]
+          [process.env.APP_NAME, job, run_dt.toISO(), +ms.toFixed(1), status, error_message]
         );
       } catch (dbErr) {
         console.error("Failed to log job run:", dbErr.message);
