@@ -3,6 +3,7 @@ require("dotenv").config();
 const jobs = require("./jobs");
 const { capture_datetime } = require("./tools");
 const { performance } = require("node:perf_hooks");
+const db = require("./db/pgPool");
 
 // Registry: map CLI name → handler function
 // Each handler receives a context object with shared resources (cap_dt, etc.)
@@ -40,9 +41,12 @@ const run_job = async (name) => {
 
 const on_boot = async () => {
   const start = performance.now();
+  const run_dt = capture_datetime("America/New_York");
+  const job = process.argv[2];
+  let status = "success";
+  let error_message = null;
 
   try {
-    const job = process.argv[2];
     if (!job) {
       throw new Error("Usage: node index.js <job_name>");
     }
@@ -51,12 +55,27 @@ const on_boot = async () => {
     await run_job(job);
 
   } catch (err) {
+    status = "error";
+    error_message = err.message;
     console.error(err.message);
-    process.exit(1);
   } finally {
     const end = performance.now();
     const ms = end - start;
     console.log(`Total runtime: ${ms.toFixed(2)} ms (${(ms / 1000).toFixed(2)} s)`);
+
+    if (job && job !== "list") {
+      try {
+        await db.none(
+          `INSERT INTO stats.job_runs (app_name, job_name, run_datetime, run_time_ms, status, error_message)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [process.env.APP_NAME, job, run_dt.toISO(), ms, status, error_message]
+        );
+      } catch (dbErr) {
+        console.error("Failed to log job run:", dbErr.message);
+      }
+    }
+
+    if (status === "error") process.exit(1);
   }
 };
 
