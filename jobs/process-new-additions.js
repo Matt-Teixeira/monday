@@ -1,5 +1,5 @@
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
-const { moveItemToGroup } = require("../api/monday-client");
+const { moveItemToGroup, changeColumnValues } = require("../api/monday-client");
 const { getCoverageInfo } = require("../config/remote-coverage");
 const mondayConfig = require("../config/monday-boards");
 const {
@@ -99,13 +99,26 @@ const process_new_additions = async () => {
   );
 
   try {
-    // Fetch items from NEW_ADDITIONS group
-    const { items } = await getMondayBoardItems(
-      mondayConfig.RTT_FEED.boardId,
-      [mondayConfig.RTT_FEED.groups.NEW_ADDITIONS]
-    );
+    // Fetch items from NEW_ADDITIONS and TOPICS groups in parallel
+    const [newAdditionsResult, topicsResult] = await Promise.all([
+      getMondayBoardItems(mondayConfig.RTT_FEED.boardId, [mondayConfig.RTT_FEED.groups.NEW_ADDITIONS]),
+      getMondayBoardItems(mondayConfig.RTT_FEED.boardId, [mondayConfig.RTT_FEED.groups.TOPICS])
+    ]);
+
+    const items = newAdditionsResult.items;
+    const topicsItems = topicsResult.items;
 
     console.log(`Found ${items.length} total items in NEW_ADDITIONS group`);
+
+    // Build name-to-item lookup for TOPICS group
+    const topicsItemMap = new Map();
+    for (const topicItem of topicsItems) {
+      const name = topicItem.name?.trim();
+      if (name) {
+        topicsItemMap.set(name, topicItem);
+      }
+    }
+    console.log(`Loaded ${topicsItemMap.size} TOPICS items for SUB_GROUP sync`);
 
     // Filter items that have Sub-Group assigned
     const itemsWithSubGroup = items.filter((item) => {
@@ -127,6 +140,7 @@ const process_new_additions = async () => {
     let mmbCount = 0;
     let hhmCount = 0;
     let movedCount = 0;
+    let topicsUpdatedCount = 0;
     let errorCount = 0;
 
     for (const item of itemsWithSubGroup) {
@@ -138,6 +152,24 @@ const process_new_additions = async () => {
       console.log(`  Sub-Group: ${subGroup}`);
       console.log(`  RemoteCoverage: ${remoteCoverage}`);
       console.log(`  MMB: ${coverageInfo.mmb}, HHM: ${coverageInfo.hhm}`);
+
+      // Update matching TOPICS item with SUB_GROUP value
+      const matchingTopicItem = topicsItemMap.get(item.name?.trim());
+      if (matchingTopicItem) {
+        try {
+          await changeColumnValues({
+            boardId: mondayConfig.RTT_FEED.boardId,
+            itemId: matchingTopicItem.id,
+            columnValues: JSON.stringify({ [SUB_GROUP_COLUMN_ID]: subGroup })
+          });
+          topicsUpdatedCount++;
+          console.log(`  -> Updated SUB_GROUP on TOPICS item ${matchingTopicItem.id}`);
+        } catch (topicErr) {
+          console.error(`  -> WARN: Failed to update TOPICS item SUB_GROUP: ${topicErr.message}`);
+        }
+      } else {
+        console.log(`  -> No matching TOPICS item found for "${item.name}"`);
+      }
 
       // Convert Monday item to system object for workflow functions
       const system = itemToSystemObject(item);
@@ -191,6 +223,7 @@ const process_new_additions = async () => {
     console.log(`Processed: ${itemsWithSubGroup.length}`);
     console.log(`Routed to MMB: ${mmbCount}`);
     console.log(`Routed to HHM: ${hhmCount}`);
+    console.log(`TOPICS SUB_GROUP updated: ${topicsUpdatedCount}`);
     console.log(`Moved to Workflow-Processed: ${movedCount}`);
     console.log(`Errors: ${errorCount}`);
 
@@ -198,6 +231,7 @@ const process_new_additions = async () => {
       processed: itemsWithSubGroup.length,
       mmb: mmbCount,
       hhm: hhmCount,
+      topicsUpdated: topicsUpdatedCount,
       moved: movedCount,
       errors: errorCount
     };
