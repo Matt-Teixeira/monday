@@ -50,11 +50,11 @@ function format_for_hhm_workflow(system) {
     }
   }
 
-  // Status columns — all set to NEW on insert
-  cols.color_mkztyftg = { label: "NEW" };  // Business-Admin
-  cols.color_mm0d3jnz = { label: "NEW" };  // Remote-Admin
-  cols.color_mm0dvwya = { label: "NEW" };  // Dev-Ops
-  cols.color_mm0dac13 = { label: "NEW" };  // Network-Admin
+  // Status columns — all set to New on insert
+  cols.color_mkztyftg = { label: "New" };  // Business-Admin
+  cols.color_mm0d3jnz = { label: "New" };  // Remote-Admin
+  cols.color_mm0dvwya = { label: "New" };  // Dev-Ops
+  cols.color_mm0dac13 = { label: "New" };  // Network-Admin
 
   // Add capture date if present (comes as "YYYY-MM-DD HH:mm" from Monday)
   if (system.CaptureDateTime) {
