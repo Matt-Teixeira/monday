@@ -174,19 +174,28 @@ const process_new_additions = async () => {
       // Convert Monday item to system object for workflow functions
       const system = itemToSystemObject(item);
 
-      // Route to MMB based on coverage; MRI modality always routes to MMB
+      // Modality-first routing: modality determines the primary board,
+      // RemoteCoverage is a secondary signal only for MRI→HHM decisions
       const modality = getColumnValue(item, MODALITY_COLUMN_ID);
-      let routeToMmb = coverageInfo.mmb === true;
-      if (!routeToMmb && modality && modality.toUpperCase() === "MRI") {
+      const upperModality = modality ? modality.toUpperCase() : "";
+
+      let routeToMmb = false;
+      let routeToHhm = false;
+
+      if (upperModality === "MRI") {
+        // MRI always goes to MMB
         routeToMmb = true;
         console.log(`  -> Modality is MRI, routing to MMB`);
-      }
 
-      // Route to HHM based on coverage; default to HHM when coverage is unknown (null)
-      let routeToHhm = coverageInfo.hhm === true;
-      if (coverageInfo.hhm == null) {
+        // Also route to HHM if coverage says so (or if unknown/null)
+        routeToHhm = coverageInfo.hhm === true || coverageInfo.hhm == null;
+        if (routeToHhm) {
+          console.log(`  -> RemoteCoverage also indicates HHM`);
+        }
+      } else {
+        // All non-MRI modalities (CT, CV/IR, CV, CATH, etc.) → HHM only, never MMB
         routeToHhm = true;
-        console.log(`  -> Unknown/empty HHM coverage, defaulting to HHM`);
+        console.log(`  -> Non-MRI modality (${modality}), routing to HHM only`);
       }
 
       try {
