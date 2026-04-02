@@ -1,20 +1,27 @@
-const { default: axios } = require("axios");
+const fetch = require("node-fetch");
 
 const get_acu_equip_rtt = async () => {
   const odate_url = process.env.PROD_EQUIPMENT_URI;
   try {
-    const res = await axios.get(odate_url, {
-      // Axios will build the Basic Authorization header for you
-      auth: {
-        username: process.env.PROD_LOGIN_NAME, // e.g. "admin" or "admin@TenantName"
-        password: process.env.PROD_LOGIN_PW
-      },
+    const res = await fetch(odate_url, {
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            process.env.PROD_LOGIN_NAME + ":" + process.env.PROD_LOGIN_PW
+          ).toString("base64")
       }
     });
 
-    return res.data;
+    if (!res.ok) {
+      const body = await res.text();
+      const error = new Error(`OData request failed: ${res.status}`);
+      error.response = { status: res.status, data: body };
+      throw error;
+    }
+
+    return await res.json();
   } catch (error) {
     console.error("OData error:", error.response?.status, error.response?.data);
     throw error;

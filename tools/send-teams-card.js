@@ -1,4 +1,4 @@
-const { default: axios } = require("axios");
+const fetch = require("node-fetch");
 
 async function send_teams_card(system, workflowType = "MMB") {
   const url = process.env.TEAMS_WH_REMOTE_TECH;
@@ -48,7 +48,11 @@ async function send_teams_card(system, workflowType = "MMB") {
     ]
   };
 
-  await axios.post(url, card);
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(card)
+  });
 }
 
 module.exports = send_teams_card;

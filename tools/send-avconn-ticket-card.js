@@ -1,4 +1,4 @@
-const { default: axios } = require("axios");
+const fetch = require("node-fetch");
 
 /**
  * Send Teams adaptive card notification for a new AVCONN ticket
@@ -73,7 +73,11 @@ async function send_avconn_ticket_card(ticket, matchResult) {
     ]
   };
 
-  await axios.post(url, card);
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(card)
+  });
 }
 
 module.exports = send_avconn_ticket_card;

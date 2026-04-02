@@ -2,23 +2,38 @@
  * Shared Monday.com API Client
  * Centralized client for all Monday.com API operations
  */
-const axios = require("axios");
+const fetch = require("node-fetch");
 const mondayConfig = require("../config/monday-boards");
 const { buildRTTColumnValues } = require("../tools/monday-column-mapper");
 
 const MONDAY_API_URL = "https://api.monday.com/v2";
 
 /**
- * Create configured axios instance for Monday.com API
+ * Create configured HTTP client for Monday.com API
  */
 function createClient() {
-  return axios.create({
-    baseURL: MONDAY_API_URL,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: process.env.MONDAY_API_TOKEN
+  return {
+    async post(path, body) {
+      const res = await fetch(MONDAY_API_URL + path, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: process.env.MONDAY_API_TOKEN
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        const error = new Error(`Monday API ${res.status}: ${text}`);
+        error.response = { status: res.status, data: text };
+        throw error;
+      }
+
+      const data = await res.json();
+      return { data };
     }
-  });
+  };
 }
 
 /**
