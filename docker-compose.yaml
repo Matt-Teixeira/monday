@@ -1,0 +1,41 @@
+# no "version" key
+
+x-common-env: &common_env
+  env_file:
+    - .env
+
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+  environment:
+    HOME: /tmp
+    NPM_CONFIG_CACHE: /tmp/.npm
+
+x-common-mounts: &common_mounts
+  working_dir: /workspace
+  volumes:
+    # Project source → live edit on host reflects in container
+    - ./:/workspace
+
+    # Cache node_modules on host (survives container removal)
+    - /opt/resources/node_mod_cache/monday:/workspace/node_modules
+
+    # Centralized run logs on host
+    - /opt/run-logs/monday:/opt/run-logs/monday
+
+# ---------- Services ----------
+services:
+  app:
+    image: monday:svc
+    <<: [*common_env, *common_mounts]
+    environment:
+      RUN_USER: ${RUN_USER:-svc}
+      HOME: /tmp
+      NPM_CONFIG_CACHE: /tmp/.npm
+    networks:
+      - pg_net
+
+# Declare external networks
+networks:
+  pg_net:
+    external: true
