@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "equipment_rtt": "node index equipment_rtt",
+    "process_new_additions": "node index.js process_new_additions",
     "group_coverage": "node index group_coverage",
     "sync_missing_data": "node index sync_missing_data",
     "inspect_missing_data_board": "node index inspect_missing_data_board"

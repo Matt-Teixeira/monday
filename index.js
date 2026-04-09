@@ -3,7 +3,7 @@ require("dotenv").config();
 const jobs = require("./jobs");
 const { capture_datetime } = require("./tools");
 const { performance } = require("node:perf_hooks");
-const db = require("./db/pgPool");
+const db = require("./utils/db/pg-pool");
 
 // Registry: map CLI name → handler function
 // Each handler receives a context object with shared resources (cap_dt, etc.)

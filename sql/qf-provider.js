@@ -1,4 +1,4 @@
-const db = require("../db/pgPool");
+const db = require("../utils/db/pg-pool");
 const {
   get_acumatica_rtt_feed,
   insert_rtt_feed,
