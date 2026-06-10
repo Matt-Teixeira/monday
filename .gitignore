@@ -1,8 +1,8 @@
 .env
 node_modules/
-utils/
 *.txt
 ex-data/
 inspect.json
 notes/
 data_outputs/
+*.crt
