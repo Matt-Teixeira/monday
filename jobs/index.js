@@ -15,6 +15,7 @@ const update_hhm_status = require("./update-hhm-status");
 const rtt_hhm_drift = require("./rtt-hhm-drift");
 const rtt_feed_change_report = require("./rtt-feed-change-report");
 const export_csv = require("./export-csv");
+const mapping_report = require("./mapping-report");
 
 module.exports = {
   inspect_board,
@@ -33,5 +34,6 @@ module.exports = {
   update_hhm_status,
   rtt_hhm_drift,
   rtt_feed_change_report,
-  export_csv
+  export_csv,
+  mapping_report
 };

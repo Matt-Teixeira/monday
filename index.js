@@ -24,7 +24,8 @@ const jobs_registry = {
   update_hhm_status:          (ctx) => jobs.update_hhm_status(),
   rtt_hhm_drift:              (ctx) => jobs.rtt_hhm_drift(ctx.cap_dt),
   rtt_feed_change_report:     (ctx) => jobs.rtt_feed_change_report(ctx.cap_dt, process.argv[3]),
-  export_csv:                 (ctx) => jobs.export_csv()
+  export_csv:                 (ctx) => jobs.export_csv(),
+  mapping_report:             (ctx) => jobs.mapping_report(ctx.cap_dt)
 };
 
 const run_job = async (name) => {
