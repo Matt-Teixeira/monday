@@ -26,12 +26,16 @@ x-common-mounts: &common_mounts
 # ---------- Services ----------
 services:
   app:
-    image: monday:svc
+    image: aux:staging
     <<: [*common_env, *common_mounts]
     environment:
       RUN_USER: ${RUN_USER:-svc}
       HOME: /tmp
       NPM_CONFIG_CACHE: /tmp/.npm
+      # Local PG container overrides
+      PGHOST: pg_db
+      PGPORT: "5432"
+      PG_SSLMODE: require
     networks:
       - pg_net
 
