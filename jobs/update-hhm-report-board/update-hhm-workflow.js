@@ -91,5 +91,6 @@ async function insert_to_hhm_cust(formatted) {
 
 module.exports = {
   format_for_hhm_workflow,
-  insert_to_hhm_cust
+  insert_to_hhm_cust,
+  HHM_VALID_COLUMNS
 };

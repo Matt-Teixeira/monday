@@ -1,4 +1,5 @@
 const db = require("../utils/db/pg-pool");
+const pgp = db.$config.pgp; // reuse the already-initialized pg-promise instance
 const {
   get_acumatica_rtt_feed,
   insert_rtt_feed,
@@ -127,7 +128,9 @@ const updateRttSystem = async (system, captureDatetime) => {
 
   values.push(captureDatetime); // $74 = capture_datetime
 
-  return db.none(update_rtt_feed.systems, values);
+  // Return the affected row count so callers can detect a no-op UPDATE
+  // (Description not present in the DB) instead of silently assuming success.
+  return db.result(update_rtt_feed.systems, values, (r) => r.rowCount);
 };
 
 const get_all_he_level = async () => {
@@ -166,6 +169,54 @@ const get_all_hhm_status = async () => {
   }
 };
 
+// ColumnSet for batch-inserting field-level change rows (defined once at load).
+// inserted_at is omitted so the DB default (now()) fills it.
+const rttChangesCS = new pgp.helpers.ColumnSet(
+  [
+    "description",
+    "monday_item_id",
+    "board_id",
+    "group_id",
+    "column_id",
+    "column_name",
+    "before_value",
+    "after_value",
+    "capture_datetime",
+    "job_name"
+  ],
+  { table: { table: "rtt_feed_changes", schema: "monday" } }
+);
+
+/**
+ * Batch-insert field-level change rows into monday.rtt_feed_changes.
+ * No-op on empty input. Returns the number of rows inserted.
+ *
+ * @param {Array<Object>} rows - objects matching rttChangesCS columns
+ * @returns {Promise<number>}
+ */
+const logRttFeedChanges = async (rows) => {
+  if (!rows || rows.length === 0) return 0;
+  await db.none(pgp.helpers.insert(rows, rttChangesCS));
+  return rows.length;
+};
+
+/**
+ * Read change-history rows, newest first. Optionally filter to changes at or
+ * after a given ISO timestamp.
+ *
+ * @param {string|null} sinceIso - ISO timestamp lower bound, or null for all
+ * @returns {Promise<Array<Object>>}
+ */
+const getRecentRttFeedChanges = async (sinceIso = null) =>
+  db.any(
+    `SELECT description, column_name, column_id, before_value, after_value,
+            group_id, monday_item_id, capture_datetime, job_name
+       FROM monday.rtt_feed_changes
+      WHERE ($1::timestamptz IS NULL OR capture_datetime >= $1)
+      ORDER BY capture_datetime DESC, description, column_name`,
+    [sinceIso]
+  );
+
 module.exports = {
   get_all_acumatica_rtt_feed,
   insert_db_rtt,
@@ -176,5 +227,7 @@ module.exports = {
   get_all_he_level,
   get_all_he_pressure,
   get_all_comp_status,
-  get_all_hhm_status
+  get_all_hhm_status,
+  logRttFeedChanges,
+  getRecentRttFeedChanges
 };

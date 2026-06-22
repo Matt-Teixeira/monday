@@ -6,3 +6,4 @@ inspect.json
 notes/
 data_outputs/
 *.crt
+*.csv
