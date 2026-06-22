@@ -23,7 +23,8 @@ const jobs_registry = {
   delta_update_rtt_feed:      (ctx) => jobs.delta_update_rtt_feed(ctx.cap_dt),
   update_hhm_status:          (ctx) => jobs.update_hhm_status(),
   rtt_hhm_drift:              (ctx) => jobs.rtt_hhm_drift(ctx.cap_dt),
-  rtt_feed_change_report:     (ctx) => jobs.rtt_feed_change_report(ctx.cap_dt, process.argv[3])
+  rtt_feed_change_report:     (ctx) => jobs.rtt_feed_change_report(ctx.cap_dt, process.argv[3]),
+  mapping_report:             (ctx) => jobs.mapping_report(ctx.cap_dt)
 };
 
 const run_job = async (name) => {
