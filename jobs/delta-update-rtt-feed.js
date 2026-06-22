@@ -2,9 +2,37 @@ const { get_acu_equip_rtt } = require("../api");
 const { getMondayBoardItems } = require("../api/get-monday-board-items");
 const { changeColumnValues, moveItemToGroup } = require("../api/monday-client");
 const { validateSystem } = require("../tools/validate-required-fields");
-const { updateRttSystem } = require("../sql/qf-provider");
+const { updateRttSystem, logRttFeedChanges } = require("../sql/qf-provider");
 const mondayConfig = require("../config/monday-boards");
 const { buildRTTColumnValues, norm } = require("../tools/monday-column-mapper");
+
+const JOB_NAME = "delta_update_rtt_feed";
+
+/**
+ * Map a changedFields array into rtt_feed_changes rows and persist them.
+ * Best-effort: a logging failure is warned and swallowed so it never aborts
+ * the sync or marks the system as errored.
+ */
+async function logChanges({ description, mondayItem, boardId, groupId, changedFields, cap_datetime }) {
+  try {
+    await logRttFeedChanges(
+      changedFields.map((f) => ({
+        description,
+        monday_item_id: String(mondayItem.id),
+        board_id: String(boardId),
+        group_id: groupId,
+        column_id: f.colId,
+        column_name: f.name,
+        before_value: f.before,
+        after_value: f.after,
+        capture_datetime: cap_datetime.toISO(),
+        job_name: JOB_NAME
+      }))
+    );
+  } catch (logErr) {
+    console.error(`    WARN: failed to log changes for ${description}: ${logErr.message}`);
+  }
+}
 
 // Reverse lookup: column ID → human-readable name
 const columnIdToName = Object.fromEntries(
@@ -139,13 +167,25 @@ const delta_update_rtt_feed = async (cap_datetime) => {
     const updateColumnValues = JSON.stringify(updateObj);
 
     try {
-      // a. Update TOPICS item (the scanned item)
+      // a. Update TOPICS item (the scanned item) — this is the board change we audit
       await changeColumnValues({
         boardId,
         itemId: mondayItem.id,
         columnValues: updateColumnValues
       });
       console.log(`    Updated TOPICS item ${mondayItem.id}`);
+
+      // a2. Audit log immediately after the board change is applied (best-effort).
+      // Logged here, before the mirror/DB writes, so a downstream failure can't
+      // drop the record of a change already applied to the TOPICS item.
+      await logChanges({
+        description,
+        mondayItem,
+        boardId,
+        groupId: mondayConfig.RTT_FEED.groups.TOPICS,
+        changedFields,
+        cap_datetime
+      });
 
       // b. Update NEW_ADDITIONS item (if exists)
       const newAdditionsItem = newAdditionsMap.get(description);
@@ -158,9 +198,13 @@ const delta_update_rtt_feed = async (cap_datetime) => {
         console.log(`    Updated NEW_ADDITIONS item ${newAdditionsItem.id}`);
       }
 
-      // c. Update database row
-      await updateRttSystem(odataSystem, cap_datetime.toISO());
-      console.log(`    Updated database row`);
+      // c. Update database row (rowCount 0 = Description not in DB → Monday-only)
+      const dbRows = await updateRttSystem(odataSystem, cap_datetime.toISO());
+      if (dbRows === 0) {
+        console.warn(`    WARN: no DB row matched Description "${description}" — Monday updated, DB unchanged`);
+      } else {
+        console.log(`    Updated database row`);
+      }
 
       updated++;
     } catch (err) {
@@ -248,6 +292,16 @@ const delta_update_rtt_feed = async (cap_datetime) => {
         columnValues: updateColumnValues
       });
       console.log(`    Updated MISSING_DATA item ${mondayItem.id}`);
+
+      // Audit log (best-effort; never breaks the sync)
+      await logChanges({
+        description,
+        mondayItem,
+        boardId,
+        groupId: mondayConfig.RTT_FEED.groups.MISSING_DATA,
+        changedFields,
+        cap_datetime
+      });
 
       mdUpdated++;
     } catch (err) {

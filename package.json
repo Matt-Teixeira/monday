@@ -7,7 +7,9 @@
     "equipment_rtt": "node index equipment_rtt",
     "group_coverage": "node index group_coverage",
     "sync_missing_data": "node index sync_missing_data",
-    "inspect_missing_data_board": "node index inspect_missing_data_board"
+    "inspect_missing_data_board": "node index inspect_missing_data_board",
+    "rtt_hhm_drift": "node index rtt_hhm_drift",
+    "rtt_feed_change_report": "node index rtt_feed_change_report"
   },
   "keywords": [],
   "author": "",

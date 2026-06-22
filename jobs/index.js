@@ -12,6 +12,8 @@ const rtt_feed_all = require("./rtt-feed-all");
 const update_mmb_he_data = require("./update-mmb-he-data");
 const delta_update_rtt_feed = require("./delta-update-rtt-feed");
 const update_hhm_status = require("./update-hhm-status");
+const rtt_hhm_drift = require("./rtt-hhm-drift");
+const rtt_feed_change_report = require("./rtt-feed-change-report");
 
 module.exports = {
   inspect_board,
@@ -27,5 +29,7 @@ module.exports = {
   rtt_feed_all,
   update_mmb_he_data,
   delta_update_rtt_feed,
-  update_hhm_status
+  update_hhm_status,
+  rtt_hhm_drift,
+  rtt_feed_change_report
 };
