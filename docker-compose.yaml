@@ -26,7 +26,14 @@ x-common-mounts: &common_mounts
 # ---------- Services ----------
 services:
   app:
-    image: aux:staging
+    # Self-contained image built from this repo's Dockerfile (no longer depends
+    # on the externally-built aux:staging shared with reports).
+    image: monday:staging
+    build:
+      context: .
+      args:
+        SVC_UID: 105      # host `id -u svc`
+        DOCKER_GID: 987   # host `getent group docker`
     <<: [*common_env, *common_mounts]
     environment:
       RUN_USER: ${RUN_USER:-svc}
