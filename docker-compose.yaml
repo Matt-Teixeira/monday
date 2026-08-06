@@ -28,12 +28,16 @@ services:
   app:
     # Self-contained image built from this repo's Dockerfile (no longer depends
     # on the externally-built aux:staging shared with reports).
-    image: monday:staging
+    image: monday:${IMAGE_TAG}
     build:
       context: .
+      # Host identity comes from .env so this file stays host-agnostic and the
+      # dev and staging branches can share it. See .env.example.
       args:
-        SVC_UID: 105      # host `id -u svc`
-        DOCKER_GID: 987   # host `getent group docker`
+        DOCKER_GID: ${DOCKER_GID}
+        UID_0: ${UID_0}
+        UID_1: ${UID_1}
+        UID_2: ${UID_2}
     <<: [*common_env, *common_mounts]
     environment:
       RUN_USER: ${RUN_USER:-svc}
