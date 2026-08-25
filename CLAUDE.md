@@ -68,8 +68,13 @@ ORDER BY run_datetime DESC LIMIT 20;
 ```
 
 Decision 2026-08-25: **no schema change** to `stats.job_runs` for release
-provenance. `RELEASE_SHA` will be stamped into the deployed `.env` and printed
-on the boot console line (→ cron `.out`), not stored per-row.
+provenance. `build-release.sh` stamps `RELEASE_SHA` into the deployed `.env`
+and `index.js` prints it on every boot line
+(`[monday] job=<name> release_sha=<sha|dev-tree>`), which cron captures in the
+per-job `.out` file. A scheduled run printing `dev-tree` means cron is running
+the wrong copy. Check what production runs with:
+`grep '^RELEASE_SHA=' /opt/apps/monday/.env` and
+`head -1 /opt/run-logs/monday/cron.<job>.out`.
 
 ## Docker setup
 
@@ -89,12 +94,20 @@ Current state (pre-migration; target in parentheses):
   node_modules (the shared `/opt/resources/node_mod_cache/monday` mount and the
   dead `/opt/run-logs/monday` mount are retired); `RUN_USER: ${RUN_USER:-}` so
   the entrypoint alone decides identity (svc unless a dev run passes it).
-- **build.sh / build-release.sh / preflight-check.sh** — do not exist yet.
-  (Target: per the paradigm — in-tree npm install as the calling user;
-  clean-tree-guarded tar-pipe release to `/opt/apps/monday` with `#RELEASE:`
-  overrides and `RELEASE_SHA` stamp, built as svc with
-  `HOME=/opt/apps/.svc-home`; preflight with authenticated PG check from a
-  sibling container + read-only Monday.com `me` query.)
+- **build.sh** — one in-tree `npm install` (throwaway node:lts container, as
+  the calling user) + `docker compose build app`. Reads `USER_ID` by grep, not
+  by sourcing (`.env` carries `$$` in Acumatica URIs that bash would mangle).
+- **build-release.sh** — clean-tree-guarded (guard sits ABOVE the wipe) tar-pipe
+  mirror to `/opt/apps/monday`; narrow excludes for the gitignored bulk
+  (`files/`, `data_outputs/`, `*.csv`, `*.txt`, `acu-rtt-hhm-mapping-*.md`, …
+  — verify changes by diffing `tar -tf`, never by eyeballing); recreates
+  `files/` svc:docker 2775; applies `#RELEASE:` overrides; stamps
+  `RELEASE_SHA`; `.env` → 640; builds as svc with `HOME=/opt/apps/.svc-home`
+  (never `/tmp` — the pilot's documented wart). `--allow-dirty` is the
+  emergency override; commit instead.
+- **preflight-check.sh** — does not exist yet. (Target: authenticated PG check
+  from a sibling container + read-only Monday.com `me` query; presence-only
+  checks for Acumatica/Teams.)
 
 ## Environment
 

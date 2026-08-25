@@ -50,12 +50,19 @@ const on_boot = async () => {
   let status = "success";
   let error_message = null;
 
+  // Release provenance: build-release.sh stamps RELEASE_SHA into the DEPLOYED
+  // .env; a dev tree has no key and prints 'dev-tree'. This boot line is the
+  // run's provenance record — cron captures it in the per-job .out file.
+  // A scheduled run printing 'dev-tree' means cron is running the wrong copy.
+  console.log(
+    `[monday] job=${job || "(none)"} release_sha=${process.env.RELEASE_SHA || "dev-tree"}`
+  );
+
   try {
     if (!job) {
       throw new Error("Usage: node index.js <job_name>");
     }
 
-    console.log(job);
     await run_job(job);
 
   } catch (err) {
