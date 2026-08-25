@@ -14,33 +14,34 @@ x-common-env: &common_env
 x-common-mounts: &common_mounts
   working_dir: /workspace
   volumes:
-    # Project source → live edit on host reflects in container
+    # Project source → live edit on host reflects in container. node_modules is
+    # IN-TREE (installed by build.sh as the host user), so it rides along in
+    # this mount — the shared /opt/resources/node_mod_cache mount is retired,
+    # each copy (dev clone, release) owns its own deps.
     - ./:/workspace
-
-    # Cache node_modules on host (survives container removal)
-    - /opt/resources/node_mod_cache/monday:/workspace/node_modules
-
-    # Centralized run logs on host
-    - /opt/run-logs/monday:/opt/run-logs/monday
 
 # ---------- Services ----------
 services:
   app:
-    # Self-contained image built from this repo's Dockerfile (no longer depends
-    # on the externally-built aux:staging shared with reports).
-    image: monday:${IMAGE_TAG}
+    # USER_ID drives the tag: monday:<username> for dev builds, monday:svc for
+    # the release copy (flipped by #RELEASE:USER_ID=svc at release time).
+    image: monday:${USER_ID}
     build:
       context: .
       # Host identity comes from .env so this file stays host-agnostic and the
       # dev and staging branches can share it. See .env.example.
       args:
+        USER_ID: ${USER_ID}
         DOCKER_GID: ${DOCKER_GID}
         UID_0: ${UID_0}
         UID_1: ${UID_1}
         UID_2: ${UID_2}
     <<: [*common_env, *common_mounts]
     environment:
-      RUN_USER: ${RUN_USER:-svc}
+      # Intentionally unset in .env: empty -> entrypoint.sh defaults to svc,
+      # so ONE place decides the production identity. Dev runs pass it on the
+      # command line. ':-' silences the compose WARN.
+      RUN_USER: ${RUN_USER:-}
       HOME: /tmp
       NPM_CONFIG_CACHE: /tmp/.npm
       # Local PG container overrides

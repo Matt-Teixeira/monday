@@ -77,19 +77,18 @@ Current state (pre-migration; target in parentheses):
 
 - **Dockerfile** — `node:lts` + gosu; users `svc`/`jonathan-pope`/`matt-teixeira`
   from no-default ARGs `DOCKER_GID`, `UID_0/1/2` (a strength — keep);
-  entrypoint **baked** via COPY. (Target adds `ARG USER_ID` +
-  `LABEL version="${USER_ID}"`.)
+  entrypoint **baked** via COPY; `ARG USER_ID` + `LABEL version="${USER_ID}"`
+  (identity, not a version — code provenance is `RELEASE_SHA`).
 - **entrypoint.sh** — gosu drop to `RUN_USER`, default `svc`. Repairs `files/`
   and `data_outputs/` while still root (only when root-owned): Docker creates a
   missing bind-mount source as root:root and `export_csv` dies writing there.
   A deliberately-chowned dir (the release copy's `files/` as svc:docker) is
   left alone.
-- **docker-compose.yaml** — image `monday:${IMAGE_TAG}`; mounts `./:/workspace`,
-  a shared node_modules cache (`/opt/resources/node_mod_cache/monday`), and a
-  dead `/opt/run-logs/monday` mount; `RUN_USER` defaulted in compose **and**
-  pinned `svc` in `.env`. (Target: `monday:${USER_ID}`, in-tree node_modules,
-  both extra mounts removed, `RUN_USER: ${RUN_USER:-}` so the entrypoint alone
-  decides identity.)
+- **docker-compose.yaml** — image `monday:${USER_ID}` (`monday:<username>` dev,
+  `monday:svc` release); single `./:/workspace` mount with **in-tree**
+  node_modules (the shared `/opt/resources/node_mod_cache/monday` mount and the
+  dead `/opt/run-logs/monday` mount are retired); `RUN_USER: ${RUN_USER:-}` so
+  the entrypoint alone decides identity (svc unless a dev run passes it).
 - **build.sh / build-release.sh / preflight-check.sh** — do not exist yet.
   (Target: per the paradigm — in-tree npm install as the calling user;
   clean-tree-guarded tar-pipe release to `/opt/apps/monday` with `#RELEASE:`

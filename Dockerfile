@@ -14,6 +14,12 @@ ARG UID_0
 ARG UID_1
 ARG UID_2
 
+# Image identity: monday:<username> for dev builds, monday:svc for the release.
+# The label records who built it (identity, not a version — RELEASE_SHA in the
+# deployed .env is the code provenance).
+ARG USER_ID
+LABEL version="${USER_ID}"
+
 # Match host docker group GID so bind-mounted files are accessible
 RUN set -eux; \
     if getent group docker >/dev/null; then \
