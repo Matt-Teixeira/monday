@@ -143,20 +143,39 @@ prod credentials, Teams webhooks) are live. The deployed copy goes mode 640 at
 release. Registration with the host rotation script for `PGPASSWORD` is
 pending.
 
-## Schedule (svc crontab — to be installed at cutover)
+## Schedule (svc crontab)
 
-Deliberately stopped 2026-08-19. Historical cadences, to be restored as
-hardened svc-crontab entries (absolute paths, `flock -n` where overlap could
-double-process, `-T`, bounded `.out` files in `/opt/run-logs/monday/`):
+The schedule is **host configuration, not app code** — it lives in the shared
+svc crontab (`sudo crontab -u svc -e`, section `1. DAILY OR MORE FREQUENT`),
+never installed from a file (that replaces the whole crontab and wipes other
+apps). The block below is the record of monday's entries; cadences are the
+historical ones (deliberately stopped 2026-08-19, restored at cutover). Host
+cron runs UTC. Sub-minute `sleep`s stagger the three families that share the
+:20/:50 minutes; `flock -n` skips a tick rather than queueing; single-`>`
+`.out` files catch failures that happen before node starts (nothing else
+records those).
 
-| Job | Cadence (ET) |
-|---|---|
-| `process_new_additions` | every 10 min |
-| `update_mmb_he_data` | every 30 min at :20/:50 |
-| `update_hhm_status` | hourly at :50 |
-| `delta_update_rtt_feed` | daily 00:20 |
-| `equipment_rtt` | daily 03:25 |
+```cron
+# MONDAY # — PROCESS NEW ADDITIONS, EVERY 10 MIN
+0,10,20,30,40,50 * * * * cd /opt/apps/monday && /usr/bin/flock -n /tmp/monday.process_new_additions.lock /usr/bin/docker compose run --rm -T app node index.js process_new_additions >/opt/run-logs/monday/cron.process_new_additions.out 2>&1
 
-Baseline (healthy week 2026-08-12→19): 1008 / 336 / 168 / 7 / 7 runs,
-≤1 error per family. Post-cutover verification diffs `stats.job_runs` against
-these numbers. Expect a first-cycle surge while the 6-day backlog drains.
+# MONDAY # — MMB HE DATA, EVERY 30 MIN AT :20/:50 (sleep 15: clear of process_new_additions in the same minute)
+20,50 * * * * sleep 15 && cd /opt/apps/monday && /usr/bin/flock -n /tmp/monday.update_mmb_he_data.lock /usr/bin/docker compose run --rm -T app node index.js update_mmb_he_data >/opt/run-logs/monday/cron.update_mmb_he_data.out 2>&1
+
+# MONDAY # — HHM STATUS, HOURLY AT :50 (sleep 30: third in the :50 minute)
+50 * * * * sleep 30 && cd /opt/apps/monday && /usr/bin/flock -n /tmp/monday.update_hhm_status.lock /usr/bin/docker compose run --rm -T app node index.js update_hhm_status >/opt/run-logs/monday/cron.update_hhm_status.out 2>&1
+
+# MONDAY # — RTT FEED DELTA, DAILY 04:20 UTC (sleep 30: third in that :20 minute)
+20 4 * * * sleep 30 && cd /opt/apps/monday && /usr/bin/flock -n /tmp/monday.delta_update_rtt_feed.lock /usr/bin/docker compose run --rm -T app node index.js delta_update_rtt_feed >/opt/run-logs/monday/cron.delta_update_rtt_feed.out 2>&1
+
+# MONDAY # — EQUIPMENT RTT, DAILY 07:25 UTC (sleep 30: clear of incident-engine's :25)
+25 7 * * * sleep 30 && cd /opt/apps/monday && /usr/bin/flock -n /tmp/monday.equipment_rtt.lock /usr/bin/docker compose run --rm -T app node index.js equipment_rtt >/opt/run-logs/monday/cron.equipment_rtt.out 2>&1
+```
+
+`new_avconn_tickets` is deliberately absent — dead process since 2026-04-21.
+
+Baseline (healthy week 2026-08-12→19): 1008 / 336 / 168 / 7 / 7 runs per
+family, ≤1 error each. Post-cutover verification diffs `stats.job_runs`
+against these numbers, plus `release_sha=<shipped sha>` on every boot line in
+the `.out` files (never `dev-tree`). Expect a first-cycle surge while the
+backlog since Aug 19 drains.
