@@ -110,9 +110,13 @@ Current state (pre-migration; target in parentheses):
   `RELEASE_SHA`; `.env` → 640; builds as svc with `HOME=/opt/apps/.svc-home`
   (never `/tmp` — the pilot's documented wart). `--allow-dirty` is the
   emergency override; commit instead.
-- **preflight-check.sh** — does not exist yet. (Target: authenticated PG check
-  from a sibling container + read-only Monday.com `me` query; presence-only
-  checks for Acumatica/Teams.)
+- **preflight-check.sh** — validates the environment the next run will use:
+  host dirs, docker, `pg_net`, `.env` keys, image `monday:${USER_ID}`,
+  node_modules, then **authenticated** checks — PG from a sibling container on
+  `pg_net` (never `docker exec pg_db psql`; loopback is trusted and passes with
+  a wrong password) and a read-only Monday.com `me` query. Acumatica/Teams are
+  presence-only by decision (a real Acumatica check would log into the prod
+  ERP; `export_csv` smoke covers it). A clean run reports **zero warnings**.
 
 ## Environment
 
