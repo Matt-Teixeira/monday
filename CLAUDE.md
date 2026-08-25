@@ -61,6 +61,11 @@ by `index.js` in a `finally` block: `app_name, job_name, run_datetime,
 run_time_ms, status ('success'|'error'), error_message`. Console output is the
 only other trace (captured by cron `.out` files post-migration).
 
+A **killed run** (SIGTERM/SIGINT — docker stop, cron kill, Ctrl-C) also leaves
+a row: `status='error'`, `error_message='<signal> received — run killed before
+completion'`, exit code 1. Flush-once handlers in `index.js`; never regress to
+exit-0-on-kill — the status/exit contract is what run-history consumers read.
+
 ```sql
 SELECT job_name, run_datetime, status, error_message
 FROM stats.job_runs WHERE app_name='monday'

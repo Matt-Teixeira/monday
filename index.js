@@ -43,12 +43,18 @@ const run_job = async (name) => {
   await handler(ctx);
 };
 
+// Set while a job is running so the signal handlers can record a killed run;
+// cleared before the finally-block insert so a late signal can't double-log.
+let active_run = null;
+let shutting_down = false;
+
 const on_boot = async () => {
   const start = performance.now();
   const run_dt = capture_datetime("America/New_York");
   const job = process.argv[2];
   let status = "success";
   let error_message = null;
+  active_run = { job, run_dt, start };
 
   // Release provenance: build-release.sh stamps RELEASE_SHA into the DEPLOYED
   // .env; a dev tree has no key and prints 'dev-tree'. This boot line is the
@@ -70,6 +76,7 @@ const on_boot = async () => {
     error_message = err.message;
     console.error(err.message);
   } finally {
+    active_run = null;
     const end = performance.now();
     const ms = end - start;
     console.log(`Total runtime: ${ms.toFixed(2)} ms (${(ms / 1000).toFixed(2)} s)`);
@@ -94,5 +101,39 @@ process.on("unhandledRejection", (err) => {
   console.error("Unhandled rejection:", err);
   process.exit(1);
 });
+
+// A killed run must still leave a stats.job_runs row and exit non-zero:
+// without this, SIGTERM/SIGINT skip the finally-block insert and the run
+// vanishes without a trace — no row, no honest exit code. gosu execs node as
+// PID 1, so docker stop / cron kills deliver the signal directly. Once-guard
+// so a second signal during the flush can't double-insert or recurse.
+const record_kill = async (signal) => {
+  if (shutting_down) return;
+  shutting_down = true;
+  console.error(`[monday] ${signal} received — recording killed run, exiting 1`);
+  const run = active_run;
+  if (run && run.job && run.job !== "list") {
+    const ms = performance.now() - run.start;
+    try {
+      await Promise.race([
+        db.none(
+          `INSERT INTO stats.job_runs (app_name, job_name, run_datetime, run_time_ms, status, error_message)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [process.env.APP_NAME, run.job, run.run_dt.toISO(), +ms.toFixed(1),
+           "error", `${signal} received — run killed before completion`]
+        ),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("kill-log insert timed out")), 5000)
+        ),
+      ]);
+    } catch (dbErr) {
+      console.error("Failed to log killed run:", dbErr.message);
+    }
+  }
+  process.exit(1);
+};
+
+process.on("SIGTERM", () => record_kill("SIGTERM"));
+process.on("SIGINT", () => record_kill("SIGINT"));
 
 on_boot();
