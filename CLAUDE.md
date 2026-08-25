@@ -79,9 +79,11 @@ Current state (pre-migration; target in parentheses):
   from no-default ARGs `DOCKER_GID`, `UID_0/1/2` (a strength — keep);
   entrypoint **baked** via COPY. (Target adds `ARG USER_ID` +
   `LABEL version="${USER_ID}"`.)
-- **entrypoint.sh** — gosu drop to `RUN_USER`, default `svc`. (Target adds
-  while-still-root repair of `files/` and `data_outputs/` — Docker creates
-  missing bind-mount sources root-owned and `export_csv` dies writing there.)
+- **entrypoint.sh** — gosu drop to `RUN_USER`, default `svc`. Repairs `files/`
+  and `data_outputs/` while still root (only when root-owned): Docker creates a
+  missing bind-mount source as root:root and `export_csv` dies writing there.
+  A deliberately-chowned dir (the release copy's `files/` as svc:docker) is
+  left alone.
 - **docker-compose.yaml** — image `monday:${IMAGE_TAG}`; mounts `./:/workspace`,
   a shared node_modules cache (`/opt/resources/node_mod_cache/monday`), and a
   dead `/opt/run-logs/monday` mount; `RUN_USER` defaulted in compose **and**

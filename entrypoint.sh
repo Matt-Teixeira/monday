@@ -7,5 +7,23 @@ RUN_USER="${RUN_USER:-svc}"
 # Dynamically set HOME based on user
 export HOME="/home/$RUN_USER"
 
+# Repair writable output directories while still root, BEFORE gosu drops
+# privileges. monday has no file logger; its on-disk writers are:
+#   /workspace/files        -- export_csv CSV output (gitignored, so a fresh
+#                              clone has no such dir)
+#   /workspace/data_outputs -- interactive inspect/board-info job dumps
+# Docker creates a missing bind-mount source as root:root, and fs.writeFileSync
+# into a missing/root-owned dir dies EACCES/ENOENT with no log to say why.
+# Only a root-owned directory is repaired: one somebody deliberately chowned
+# (e.g. the release copy's files/ as svc:docker) is left alone.
+for dir in /workspace/files /workspace/data_outputs; do
+    mkdir -p "$dir"
+    if [ "$(stat -c %u "$dir")" = "0" ]; then
+        echo "entrypoint: $dir is root-owned (Docker created it) — chowning to $RUN_USER:docker"
+        chown "$RUN_USER":docker "$dir" || true
+        chmod 2775 "$dir" || true
+    fi
+done
+
 # Execute command as the specified user
 exec gosu "$RUN_USER" "$@"
