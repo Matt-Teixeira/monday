@@ -20,6 +20,10 @@ x-common-mounts: &common_mounts
     # each copy (dev clone, release) owns its own deps.
     - ./:/workspace
 
+    # PostgreSQL server certificate (read-only). PG_SSLMODE=verify-full
+    # reads it at PG_SSL_PATH; the pool fails closed if it is missing.
+    - /opt/resources/ssl:/opt/resources/ssl:ro
+
 # ---------- Services ----------
 services:
   app:
@@ -47,7 +51,8 @@ services:
       # Local PG container overrides
       PGHOST: pg_db
       PGPORT: "5432"
-      PG_SSLMODE: require
+      PG_SSLMODE: verify-full
+      PG_SSL_PATH: /opt/resources/ssl/pg_ssl.crt
     networks:
       - pg_net
 
