@@ -138,10 +138,14 @@ Current state (pre-migration; target in parentheses):
   reports SQL, vpn/, units/, config-processor/). Only `utils/db/pg-pool.js` is
   live. Cleanup is deferred until after cutover.
 
-Secrets in `.env` (postgres superuser password, Monday API token, Acumatica
+Secrets in `.env` (the app's database password, Monday API token, Acumatica
 prod credentials, Teams webhooks) are live. The deployed copy goes mode 640 at
-release. Registration with the host rotation script for `PGPASSWORD` is
-pending.
+release. PostgreSQL: the app connects as its own role `monday_rw` (member of the
+shared group `apps_rw`, not a superuser; server runbook 4.0.4), password in
+root-only `/root/monday_rw_pw`. `pg_manage_v2/db/roles/apply-app-role.sh monday`
+writes `PGUSER`/`PGPASSWORD` into the clone's `.env` (`--rotate`, `--rollback`);
+`build-release.sh` carries them to the release copy. Never paste it by hand. There
+is no rotation script on the dev server.
 
 ## Schedule (svc crontab)
 
