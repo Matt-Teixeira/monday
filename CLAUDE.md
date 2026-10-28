@@ -78,8 +78,17 @@ and `index.js` prints it on every boot line
 (`[monday] job=<name> release_sha=<sha|dev-tree>`), which cron captures in the
 per-job `.out` file. A scheduled run printing `dev-tree` means cron is running
 the wrong copy. Check what production runs with:
-`grep '^RELEASE_SHA=' /opt/apps/monday/.env` and
+`grep -E '^RELEASE_(SHA|AT)=' /opt/apps/monday/.env` and
 `head -1 /opt/run-logs/monday/cron.<job>.out`.
+
+`RELEASE_AT` (UTC, `YYYY-MM-DDTHH:MM:SSZ`, for the orchestrator's
+release-drift view) is stamped beside `RELEASE_SHA` in the same block — the
+`.env`'s mtime moves on any edit, copy or restore, so it is not a release
+time. Neither key is ever set by hand; a dev `.env` has neither. `RELEASE_AT`
+is not printed on the boot line. Readers grep the keys, never `source` the
+`.env`. `preflight-check.sh` warns (from both the dev and release copy) when
+the release `.env` has `RELEASE_SHA` but no `RELEASE_AT` (released before the
+stamp existed — re-release) or a malformed one (edited by hand).
 
 ## Docker setup
 
@@ -107,7 +116,7 @@ Current state (pre-migration; target in parentheses):
   (`files/`, `data_outputs/`, `*.csv`, `*.txt`, `acu-rtt-hhm-mapping-*.md`, …
   — verify changes by diffing `tar -tf`, never by eyeballing); recreates
   `files/` svc:docker 2775; applies `#RELEASE:` overrides; stamps
-  `RELEASE_SHA`; `.env` → 640; builds as svc with `HOME=/opt/apps/.svc-home`
+  `RELEASE_SHA` + `RELEASE_AT`; `.env` → 640; builds as svc with `HOME=/opt/apps/.svc-home`
   (never `/tmp` — the pilot's documented wart). `--allow-dirty` is the
   emergency override; commit instead.
 - **preflight-check.sh** — validates the environment the next run will use:
