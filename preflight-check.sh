@@ -114,7 +114,7 @@ else
         [ -n "$(env_val "$key")" ] || info ".env: $key empty (only used by dead job new_avconn_tickets)"
     done
 
-    for retired in IMAGE_TAG RUN_USER; do
+    for retired in IMAGE_TAG RUN_USER RUN_ENV LOGGER; do
         grep -q "^$retired=" .env && warn ".env: retired key $retired still present — remove it (see .env.example)"
     done
 fi
