@@ -8,15 +8,18 @@ RUN_USER="${RUN_USER:-svc}"
 export HOME="/home/$RUN_USER"
 
 # Repair writable output directories while still root, BEFORE gosu drops
-# privileges. monday has no file logger; its on-disk writers are:
+# privileges. monday's on-disk writers are:
+#   /workspace/utils/logger/logs -- fleet run logs (utils/logger/log.js),
+#                              bind-mounted from LOG_DIR
 #   /workspace/files        -- export_csv CSV output (gitignored, so a fresh
 #                              clone has no such dir)
 #   /workspace/data_outputs -- interactive inspect/board-info job dumps
-# Docker creates a missing bind-mount source as root:root, and fs.writeFileSync
-# into a missing/root-owned dir dies EACCES/ENOENT with no log to say why.
+# Docker creates a missing bind-mount source as root:root, and a write into a
+# missing/root-owned dir dies EACCES/ENOENT with no log to say why.
 # Only a root-owned directory is repaired: one somebody deliberately chowned
-# (e.g. the release copy's files/ as svc:docker) is left alone.
-for dir in /workspace/files /workspace/data_outputs; do
+# (e.g. /opt/run-logs/monday or the release copy's files/ as svc:docker) is
+# left alone.
+for dir in /workspace/utils/logger/logs /workspace/files /workspace/data_outputs; do
     mkdir -p "$dir"
     if [ "$(stat -c %u "$dir")" = "0" ]; then
         echo "entrypoint: $dir is root-owned (Docker created it) — chowning to $RUN_USER:docker"

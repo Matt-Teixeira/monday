@@ -72,6 +72,7 @@ echo "==> releasing $APP_NAME  commit: $GIT_SHA  ->  $DEST"
 # cache. Excludes cover (a) things that must never ship (git, agent dirs) and
 # (b) this repo's gitignored bulk — gitignored files pass the guard but WOULD
 # be copied by tar: files/ (export_csv CSVs), data_outputs/, notes/, ex-data/,
+# utils/logger/logs/ (dev run logs; the release's go to LOG_DIR=/opt/run-logs),
 # and the root-level report outputs (*.csv, *.txt, acu-rtt-hhm-mapping-*.md,
 # inspect.json). Patterns are deliberately NARROW: no tracked .csv/.txt/.crt
 # exists (verified via git ls-files), and the tracked .md files (CLAUDE.md,
@@ -88,6 +89,7 @@ sudo tar -C "$SRC" \
     --exclude='./.codex' \
     --exclude='./files' \
     --exclude='./data_outputs' \
+    --exclude='./utils/logger/logs' \
     --exclude='./notes' \
     --exclude='./ex-data' \
     --exclude='*.csv' \

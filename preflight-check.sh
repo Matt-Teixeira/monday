@@ -26,6 +26,20 @@ env_val() {
 
 # ---------------------------------------------------------------- 1. host dirs
 section "Host directories"
+LOG_DIR="$(env_val LOG_DIR)"; LOG_DIR="${LOG_DIR:-./utils/logger/logs}"
+if [ -d "$LOG_DIR" ] && [ -w "$LOG_DIR" ]; then
+    ok "LOG_DIR $LOG_DIR writable ($(stat -c '%U:%G %a' "$LOG_DIR"))"
+elif [ -d "$LOG_DIR" ]; then
+    error "LOG_DIR $LOG_DIR exists but is not writable by $(id -un) ($(stat -c '%U:%G %a' "$LOG_DIR"))"
+else
+    # entrypoint.sh repairs a MISSING dev dir on first containerized run, so
+    # missing-in-dev is only a warning; a missing release dir is a real error.
+    case "$LOG_DIR" in
+        /opt/run-logs/*) error "LOG_DIR $LOG_DIR does not exist — create it svc:docker 2775 before the first release run" ;;
+        *) warn "LOG_DIR $LOG_DIR does not exist yet (entrypoint.sh creates it on first docker run)" ;;
+    esac
+fi
+
 # files/ is export_csv's output dir: gitignored (missing in a fresh clone,
 # entrypoint.sh creates it on first docker run) and recreated svc:docker by
 # build-release.sh in the release copy.
@@ -61,7 +75,7 @@ section ".env"
 if [ ! -f .env ]; then
     error ".env missing — copy .env.example and fill it in"
 else
-    REQUIRED="APP_NAME USER_ID PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PG_SSLMODE
+    REQUIRED="APP_NAME USER_ID LOGGER_MODE LOG_DIR PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PG_SSLMODE
               MONDAY_API_TOKEN
               MONDAY_BOARD_MRI_PLATFORM_REPORTING MONDAY_BOARD_ALERT_MATRIX
               MONDAY_BOARD_ID_RTT_FEED MONDAY_BOARD_ID_RTT_FEED_ALL
@@ -80,6 +94,12 @@ else
             esac
         fi
     done
+
+    LOGGER_MODE="$(env_val LOGGER_MODE)"
+    case "$LOGGER_MODE" in
+        log|log_and_console) : ;;
+        *) error ".env: LOGGER_MODE must be 'log' or 'log_and_console' (got '$LOGGER_MODE')" ;;
+    esac
 
     # PGHOST empty is worse than a missing key here: utils/db/pg-pool.js falls
     # back PGHOST -> PG_HOST, and this .env keeps an active PG_HOST pointing at

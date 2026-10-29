@@ -20,6 +20,11 @@ x-common-mounts: &common_mounts
     # each copy (dev clone, release) owns its own deps.
     - ./:/workspace
 
+    # Run logs (fleet standard). Host destination is env-dependent; defaults
+    # to the DEV path so a missing LOG_DIR fails safe (never writes into
+    # /opt/run-logs). Release: #RELEASE:LOG_DIR=/opt/run-logs/monday.
+    - ${LOG_DIR:-./utils/logger/logs}:/workspace/utils/logger/logs
+
     # PostgreSQL server certificate (read-only). PG_SSLMODE=verify-full
     # reads it at PG_SSL_PATH; the pool fails closed if it is missing.
     - /opt/resources/ssl:/opt/resources/ssl:ro
